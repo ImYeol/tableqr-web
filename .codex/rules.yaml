@@ -1,0 +1,52 @@
+project: tableQR
+description: >
+  QR 코드를 통해 고객이 특정 상점의 메뉴판과 대기번호판을 조회할 수 있는 웹앱.
+  Next.js + Supabase + Tailwind + Shadcn UI 기반으로 구성되며, 
+  Admin과 User 사이트로 구분되어 있다.
+
+stack:
+  - Next.js 14 (App Router)
+  - Supabase (Auth, Realtime, Storage)
+  - Tailwind CSS
+  - Shadcn UI
+  - TypeScript
+
+rules:
+  framework:
+    - "프로젝트는 Next.js App Router 구조를 사용한다. (/app/*)"
+    - "기본적으로 서버 컴포넌트를 사용하되, 클라이언트 상호작용이 필요한 경우에만 'use client'를 추가한다."
+    - "모든 페이지는 TypeScript 기반으로 작성한다."
+    - "환경 변수는 .env.local 에 정의하고 process.env 를 직접 참조하지 않는다. lib/env.ts 를 통해 주입한다."
+
+  styling:
+    - "스타일은 Tailwind CSS 유틸리티 클래스를 사용한다."
+    - "모든 UI 구성요소는 Shadcn UI 컴포넌트를 기반으로 확장한다."
+    - "Card, Button, Dialog, Input 등 공통 컴포넌트는 /components/ui 에 저장한다."
+    - "rounded-2xl, shadow-sm, p-4 등의 일관된 spacing을 유지한다."
+
+  supabase:
+    - "Supabase client는 src/lib/supabaseClient.ts 에서 초기화한다."
+    - "서버 컴포넌트에서는 Supabase Server Client (cookies 기반)를 사용한다."
+    - "대기번호(queues) 변경 시 Supabase Realtime subscription으로 실시간 반영한다."
+    - "Storage의 이미지 URL은 public-read 로 접근하며, DB에는 URL만 저장한다."
+
+  file-structure:
+    - "app/store/[storeId]/page.tsx : 고객용 상점 페이지 (소개, 메뉴, 대기번호판)"
+    - "app/admin/* : 관리자 전용 페이지"
+    - "src/components/features : 메뉴판, 대기번호, 매장정보 관련 컴포넌트"
+    - "src/components/ui : 공통 UI 컴포넌트 (Shadcn 기반)"
+    - "src/lib : Supabase, util, env 관련 모듈"
+    - "src/types : 전역 타입 정의 (Store, Menu, Queue 등)"
+    - "src/hooks : 클라이언트 전용 훅 (예: useRealtimeQueue)"
+
+  coding-style:
+    - "ESLint + Prettier 설정을 유지하고, import 순서를 자동 정렬한다."
+    - "비동기 로직은 async/await 을 사용하고 .then 체인은 피한다."
+    - "hooks는 use로 시작하는 네이밍을 따른다 (useQueue, useStore 등)."
+    - "모든 컴포넌트는 Props 인터페이스를 명시한다."
+
+  ui-guidelines:
+    - "고객용 페이지는 밝은 톤의 beige 계열 배경을 사용한다 (#F9F7F3)."
+    - "대기번호 상태별 색상: WAITING=gray, CALLED=yellow, DONE=green, CANCELED=red."
+    - "모바일 화면 기준으로 디자인하며, 768px 이상에서는 반응형 grid 적용."
+    - "Shadcn Button variant='outline' 은 관리자용 버튼 스타일로 사용."
