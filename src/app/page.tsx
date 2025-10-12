@@ -1,103 +1,103 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+import { createSupabaseClient } from "@/lib/supabaseClient";
+import type { Store } from "@/types";
+
+type StoreListItem = Pick<Store, "store_id" | "name" | "description" | "cover_url" | "address">;
+
+const fetchStores = async () => {
+  const supabase = createSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("stores")
+    .select("store_id, name, description, cover_url, address")
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  if (error) {
+    console.error("Failed to load stores", error);
+    return [];
+  }
+
+  console.log({data, error});
+
+  return (data ?? []) as StoreListItem[];
+};
+
+const StoreCard = ({ store }: { store: StoreListItem }) => (
+  <article className="flex flex-col rounded-2xl bg-white/90 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+    <div className="mb-4 h-40 w-full overflow-hidden rounded-xl bg-neutral-100">
+      {store.cover_url ? (
+        <img alt={`${store.name} 대표 이미지`} className="h-full w-full object-cover" src={store.cover_url} />
+      ) : (
+        <div className="flex h-full items-center justify-center text-sm text-neutral-400">이미지 준비 중</div>
+      )}
+    </div>
+    <h3 className="text-lg font-semibold text-neutral-900">{store.name}</h3>
+    <p className="mt-2 line-clamp-2 text-sm text-neutral-500">
+      {store.description || "매장 소개가 준비 중입니다."}
+    </p>
+    {store.address ? <p className="mt-3 text-xs text-neutral-400">{store.address}</p> : null}
+    <Link
+      className="mt-4 inline-flex items-center justify-center rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
+      href={`/store/${store.store_id}`}
+    >
+      매장 페이지 이동
+    </Link>
+  </article>
+);
+
+const EmptyState = () => (
+  <div className="rounded-2xl border border-dashed border-neutral-200 bg-white/70 p-10 text-center text-neutral-500">
+    아직 등록된 매장이 없습니다. Supabase `stores` 테이블에 매장을 추가해 주세요.
+  </div>
+);
+
+const StoresSection = async () => {
+  const stores = await fetchStores();
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <section className="space-y-6">
+      <header className="space-y-2">
+        <p className="text-sm uppercase tracking-wide text-amber-600">TableQR</p>
+        <h2 className="text-3xl font-semibold text-neutral-900">방문할 매장을 선택하세요</h2>
+        <p className="max-w-2xl text-sm text-neutral-500">
+          QR 코드를 스캔하거나 아래 목록에서 매장을 선택하면 실시간 메뉴판과 대기 현황을 확인할 수 있습니다.
+        </p>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {stores.length ? (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {stores.map((store) => (
+            <StoreCard key={store.store_id} store={store} />
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        <EmptyState />
+      )}
+    </section>
+  );
+};
+
+const HeroSection = () => (
+  <section className="rounded-3xl bg-gradient-to-r from-[#F9F7F3] via-[#F1EBDD] to-[#F8F1E8] p-10 shadow-sm">
+    <p className="text-sm uppercase tracking-[0.3em] text-amber-600">QR 기반 대기/메뉴</p>
+    <h1 className="mt-4 text-4xl font-semibold text-neutral-900">
+      줄 서지 않는 매장 경험, <span className="text-amber-600">TableQR</span>로 시작하세요.
+    </h1>
+    <p className="mt-4 text-base leading-7 text-neutral-600">
+      고객은 QR 코드 하나로 메뉴판과 대기 상황을 확인하고, 매장은 실시간으로 대기 팀을 관리할 수 있습니다.
+    </p>
+  </section>
+);
+
+export default async function Home() {
+  return (
+    <div className="min-h-screen bg-[#F9F7F3]">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-14 px-5 py-12">
+        <HeroSection />
+        <StoresSection />
+      </div>
     </div>
   );
 }
