@@ -15,6 +15,7 @@ export interface Menu {
   store_id: number;
   name: string;
   description: string | null;
+  category?: string | number | null;
   price: number;
   image_url: string | null;
   is_active: boolean;
@@ -28,4 +29,3 @@ export interface Queue {
   created_at: string;
   called_at: string | null;
 }
-

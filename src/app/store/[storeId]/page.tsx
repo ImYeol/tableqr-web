@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { MenuGrid } from "@/components/features/store/MenuGrid";
-import { QueueBoard } from "@/components/features/store/QueueBoard";
 import { StoreHero } from "@/components/features/store/StoreHero";
 import { createSupabaseClient } from "@/lib/supabaseClient";
-import type { Menu, Queue, Store } from "@/types";
+import type { Menu, Store } from "@/types";
 
 type StorePageParams = {
   storeId: string;
@@ -13,7 +12,7 @@ type StorePageParams = {
 const fetchStoreData = async (storeId: number) => {
   const supabase = createSupabaseClient();
 
-  const [storeResponse, menuResponse, queueResponse] = await Promise.all([
+  const [storeResponse, menuResponse] = await Promise.all([
     supabase
       .from("stores")
       .select("store_id, name, description, address, phone, logo_url, cover_url")
@@ -21,15 +20,10 @@ const fetchStoreData = async (storeId: number) => {
       .maybeSingle(),
     supabase
       .from("menus")
-      .select("menu_id, store_id, name, description, price, image_url, is_active")
+      .select("menu_id, store_id, name, description, category:category_id, price, image_url, is_active")
       .eq("store_id", storeId)
       .eq("is_active", true)
       .order("name", { ascending: true }),
-    supabase
-      .from("queues")
-      .select("queue_id, store_id, queue_number, status, created_at, called_at")
-      .eq("store_id", storeId)
-      .order("queue_number", { ascending: true }),
   ]);
 
   if (storeResponse.error || !storeResponse.data) {
@@ -39,7 +33,6 @@ const fetchStoreData = async (storeId: number) => {
   return {
     store: storeResponse.data as Store,
     menus: (menuResponse.data as Menu[] | null) ?? [],
-    queues: (queueResponse.data as Queue[] | null) ?? [],
   };
 };
 
@@ -59,14 +52,15 @@ const StorePage = async ({ params }: { params: Promise<StorePageParams> }) => {
     notFound();
   }
 
-  const { store, menus, queues } = result;
+  const { store, menus } = result;
+  const queueHref = `/store/${store.store_id}/waitlist`;
 
   return (
-    <div className="min-h-screen bg-[#F9F7F3] pb-16">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pt-10">
-        <StoreHero store={store} />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-brand-50 via-[#f9f6f1] to-white pb-24">
+      <div className="pointer-events-none absolute inset-x-0 top-[-120px] h-[360px] rounded-b-[70%] bg-gradient-to-b from-brand-200/40 via-brand-100/30 to-transparent blur-3xl" />
+      <div className="relative mx-auto flex w-full flex-col gap-12 px-6 pt-12">
+        <StoreHero store={store} menuCount={menus.length} queueHref={queueHref} />
         <MenuGrid menus={menus} />
-        <QueueBoard initialQueues={queues} storeId={store.store_id} />
       </div>
     </div>
   );
