@@ -12,13 +12,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-500 text-white shadow-[0_16px_32px_-20px_rgba(255,120,56,0.75)] hover:bg-brand-600 hover:shadow-[0_18px_36px_-16px_rgba(255,120,56,0.8)]",
+    "bg-brand-600 text-white shadow-[0_18px_36px_-18px_rgba(15,49,33,0.55)] hover:bg-brand-700 hover:shadow-[0_22px_44px_-20px_rgba(15,49,33,0.6)]",
   secondary:
-    "bg-surface text-brand-600 border border-brand-200 hover:border-brand-300 hover:bg-brand-50/80 hover:text-brand-700",
+    "bg-white text-brand-700 border border-brand-100 hover:border-brand-200 hover:bg-brand-50/60 hover:text-brand-800",
   soft:
-    "bg-brand-50 text-brand-700 border border-transparent hover:bg-brand-100 hover:text-brand-800 focus-visible:ring-2 focus-visible:ring-brand-200",
-  ghost:
-    "text-muted-foreground hover:bg-surface-muted/80 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-200",
+    "bg-brand-600/10 text-brand-700 hover:bg-brand-600/20 hover:text-brand-800",
+  ghost: "text-muted-foreground hover:bg-surface-muted/70 hover:text-foreground",
   link: "text-brand-600 hover:text-brand-700 underline-offset-4 hover:underline",
 };
 
@@ -39,7 +38,7 @@ export const buttonClassName = ({
   className?: string;
 }) =>
   cn(
-    "inline-flex items-center gap-2 rounded-[var(--radius-pill)] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:pointer-events-none disabled:opacity-60",
+    "inline-flex items-center gap-2 rounded-[var(--radius-pill)] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:pointer-events-none disabled:opacity-60",
     variantClasses[variant],
     sizeClasses[size],
     className,

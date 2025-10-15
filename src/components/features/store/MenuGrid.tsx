@@ -1,14 +1,17 @@
-"use client";
+'use client';
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRightIcon, HeartFillIcon, HeartIcon } from "@/components/ui/icons";
+import { iconButtonClassName } from "@/components/ui/icon-button";
+import { InfoPill } from "@/components/ui/info-pill";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { HeartFillIcon, HeartIcon, ShoppingBagIcon } from "@/components/ui/icons";
 import type { Menu } from "@/types";
 
 interface MenuGridProps {
   menus: Menu[];
+  onAddToCart?: (menu: Menu) => void;
 }
 
 const currencyFormatter = new Intl.NumberFormat("ko-KR", {
@@ -19,15 +22,35 @@ const currencyFormatter = new Intl.NumberFormat("ko-KR", {
 const normalizeCategory = (raw?: string | number | null) => {
   if (typeof raw === "string") {
     const trimmed = raw.trim();
-    return trimmed.length ? trimmed : "추천 메뉴";
+    return trimmed.length ? trimmed : "시그니처";
   }
   if (typeof raw === "number") {
     return `카테고리 ${raw}`;
   }
-  return "추천 메뉴";
+  return "시그니처";
 };
 
-export const MenuGrid = ({ menus }: MenuGridProps) => {
+const resolveHighlightLabel = (menu: Menu): string | null => {
+  const sources = [menu.category, menu.description, menu.name];
+
+  for (const source of sources) {
+    if (!source || typeof source !== "string") {
+      continue;
+    }
+
+    const normalized = source.toLowerCase();
+    if (normalized.includes("new") || normalized.includes("신메뉴") || normalized.includes("new.") || normalized.includes("new!") || normalized.includes("신상")) {
+      return "New";
+    }
+    if (normalized.includes("best") || normalized.includes("signature") || normalized.includes("favorite") || normalized.includes("시그니처") || normalized.includes("추천")) {
+      return "Best";
+    }
+  }
+
+  return null;
+};
+
+export const MenuGrid = ({ menus, onAddToCart }: MenuGridProps) => {
   const [activeCategory, setActiveCategory] = useState("전체");
   const [favorites, setFavorites] = useState<number[]>([]);
 
@@ -50,90 +73,109 @@ export const MenuGrid = ({ menus }: MenuGridProps) => {
     setFavorites((prev) => (prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]));
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-6">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Select Menu</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">원하는 메뉴를 선택해 보세요</h2>
+          </div>
+        </div>
+        <SegmentedControl
+          options={categories.map((category) => ({ label: category, value: category }))}
+          value={activeCategory}
+          onValueChange={setActiveCategory}
+        />
+      </div>
 
-      <nav className="no-scrollbar -mx-1 flex gap-4 overflow-x-auto border-b border-border-soft/60 pb-4">
-        {categories.map((category) => {
-          const isActive = activeCategory === category;
-          return (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setActiveCategory(category)}
-              className={`relative whitespace-nowrap px-1 pb-1 text-sm font-semibold transition-colors ${
-                isActive ? "text-brand-600" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {category}
-              {isActive ? (
-                <span className="absolute inset-x-0 -bottom-[0.55rem] mx-auto h-2 w-8 rounded-full bg-brand-500/85" />
-              ) : null}
-            </button>
-          );
-        })}
-      </nav>
-
-      {filteredMenus.length ? (
-        <div className="grid gap-5 sm:grid-cols-2">
-          {filteredMenus.map((menu) => {
+      <div className="space-y-4">
+        {filteredMenus.length ? (
+          filteredMenus.map((menu) => {
             const category = normalizeCategory(menu.category);
             const isFavorite = favorites.includes(menu.menu_id);
+            const highlightLabel = resolveHighlightLabel(menu);
+            const href = `/store/${menu.store_id}/menus/${menu.menu_id}`;
+
             return (
-              <Card key={menu.menu_id} className="group flex flex-col overflow-hidden border border-border-soft/50 bg-surface/95">
-                <div className="relative h-44 w-full overflow-hidden bg-surface-muted/80">
-                  {menu.image_url ? (
-                    <img
-                      alt={`${menu.name} 이미지`}
-                      src={menu.image_url}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-100 via-brand-50 to-white text-brand-600">
-                      이미지 준비 중
+              <Link key={menu.menu_id} href={href} className="group block">
+                <article className="flex items-center gap-3.5 rounded-[var(--radius-xl)] bg-[var(--color-surface)] px-3 py-3.5 shadow-[var(--shadow-card)] transition-transform duration-150 group-hover:-translate-y-0.5">
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[calc(var(--radius-xl)-1rem)] bg-surface-muted">
+                    {menu.image_url ? (
+                      <img src={menu.image_url} alt={`${menu.name} 이미지`} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-200/70 via-brand-100 to-brand-50 text-brand-700">
+                        이미지 준비 중
+                      </div>
+                    )}
+                    <div className="absolute left-2.5 top-2.5 inline-flex items-center gap-2">
+                      <InfoPill variant="surface" className="bg-black/55 px-2.5 py-1 text-[0.65rem] text-white/95">
+                        {category}
+                      </InfoPill>
                     </div>
-                  )}
-                  <span className="absolute left-5 top-4 inline-flex items-center rounded-full bg-black/55 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                    {category}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => toggleFavorite(menu.menu_id)}
-                    aria-label="즐겨찾기 토글"
-                    className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-brand-500 shadow-sm transition-transform hover:scale-105"
-                  >
-                    {isFavorite ? <HeartFillIcon className="h-5 w-5" /> : <HeartIcon className="h-5 w-5" />}
-                  </button>
-                </div>
-                <CardHeader className="space-y-1 px-6 pb-0 pt-5">
-                  <CardTitle className="text-lg font-semibold text-foreground">{menu.name}</CardTitle>
-                  {menu.description ? (
-                    <p className="text-sm text-muted-foreground/85">{menu.description}</p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground/70">주문량이 많은 인기 메뉴예요.</p>
-                  )}
-                </CardHeader>
-                <CardContent className="mt-auto flex items-center justify-between px-6 pb-6 pt-4">
-                  <div className="flex flex-col text-sm text-muted-foreground">
-                    <span className="font-semibold text-brand-600">{currencyFormatter.format(menu.price)}</span>
-                    <span className="text-xs text-muted-foreground/70">지금 바로 주문해 보세요</span>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleFavorite(menu.menu_id);
+                      }}
+                      aria-label="즐겨찾기 토글"
+                      className={iconButtonClassName({
+                        variant: "ghost",
+                        size: "sm",
+                        className: "absolute right-2.5 top-2.5 bg-white text-brand-600 shadow-[0_14px_28px_-20px_rgba(15,49,33,0.3)]",
+                      })}
+                    >
+                      {isFavorite ? <HeartFillIcon className="h-5 w-5" /> : <HeartIcon className="h-5 w-5" />}
+                    </button>
                   </div>
-                  <Link
-                    href={`/store/${menu.store_id}/menus/${menu.menu_id}`}
-                    className="inline-flex h-9 items-center gap-1 rounded-[var(--radius-pill)] px-4 text-sm font-semibold text-brand-600 transition-colors hover:bg-brand-50"
-                  >
-                    상세보기
-                    <ArrowRightIcon className="h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
+
+                  <div className="flex flex-1 flex-col justify-center gap-2 text-left">
+                    <div className="space-y-1 text-left">
+                      {highlightLabel ? (
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.32em] text-brand-600/80">
+                          {highlightLabel}
+                        </span>
+                      ) : null}
+                      <h3 className="text-[1rem] font-semibold leading-snug text-foreground">{menu.name}</h3>
+                      {menu.description ? (
+                        <p className="text-[0.85rem] text-muted-foreground line-clamp-2">{menu.description}</p>
+                      ) : (
+                        <p className="text-[0.85rem] text-muted-foreground/75">주문량이 많은 인기 메뉴예요.</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[1.05rem] font-semibold text-brand-700">
+                        {currencyFormatter.format(menu.price)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onAddToCart?.(menu);
+                        }}
+                        aria-label="장바구니에 추가"
+                        className={iconButtonClassName({
+                          variant: "primary",
+                          size: "xs",
+                          className: "shadow-none",
+                        })}
+                      >
+                        <ShoppingBagIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </Link>
             );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-[var(--radius-lg)] border border-dashed border-border-soft/70 bg-surface-muted/40 p-10 text-center text-muted-foreground">
-          현재 선택한 카테고리에 등록된 메뉴가 없습니다. 다른 카테고리를 선택해 보세요.
-        </div>
-      )}
+          })
+        ) : (
+          <div className="rounded-[var(--radius-xl)] border border-dashed border-border-soft bg-surface-muted/40 px-8 py-12 text-center text-sm text-muted-foreground">
+            현재 선택한 카테고리에 등록된 메뉴가 없습니다. 다른 카테고리를 선택해 보세요.
+          </div>
+        )}
+      </div>
     </section>
   );
 };
