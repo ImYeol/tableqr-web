@@ -94,3 +94,57 @@ export const ClockIcon = createIcon(
   </>,
 );
 ClockIcon.displayName = "ClockIcon";
+
+export const ShareIcon = createIcon(
+  <>
+    <circle cx={18} cy={5} r={3} />
+    <circle cx={6} cy={12} r={3} />
+    <circle cx={18} cy={19} r={3} />
+    <path d="M15.59 6.51 8.42 10.98" />
+    <path d="m8.41 13.02 7.18 4.47" />
+  </>,
+);
+ShareIcon.displayName = "ShareIcon";
+
+export const MessageIcon = createIcon(
+  <>
+    <path d="M21 11.5a7.5 7.5 0 0 1-9 7.35L7 21l1.2-4A7.5 7.5 0 1 1 21 11.5Z" />
+    <path d="M9 10h6" />
+    <path d="M9 13h3" />
+  </>,
+);
+MessageIcon.displayName = "MessageIcon";
+
+export const PhoneIcon = createIcon(
+  <>
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 3.15 9.8 19.79 19.79 0 0 1 .08 1.86 2 2 0 0 1 2.06 0h3a2 2 0 0 1 2 1.72 12.42 12.42 0 0 0 .67 2.73 2 2 0 0 1-.45 2.11L6 7a16 16 0 0 0 11 11l.44-.28a2 2 0 0 1 2.11-.45 12.42 12.42 0 0 0 2.73.67A2 2 0 0 1 22 16.92Z" />
+  </>,
+);
+PhoneIcon.displayName = "PhoneIcon";
+
+export const ShoppingBagIcon = createIcon(
+  <>
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+    <path d="M3 6h18" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
+  </>,
+);
+ShoppingBagIcon.displayName = "ShoppingBagIcon";
+
+export const StarIcon = React.forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(
+  ({ className, ...props }, ref) => (
+    <svg
+      ref={ref}
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      fill="currentColor"
+      stroke="none"
+      {...props}
+    >
+      <path d="M12 3.25 14.63 8a1 1 0 0 0 .75.5l5.12.74-3.7 3.62a1 1 0 0 0-.29.9l.87 5.09-4.57-2.4a1 1 0 0 0-.94 0l-4.57 2.4.87-5.09a1 1 0 0 0-.29-.9L3.5 9.24 8.62 8.5a1 1 0 0 0 .75-.5Z" />
+    </svg>
+  ),
+);
+StarIcon.displayName = "StarIcon";
