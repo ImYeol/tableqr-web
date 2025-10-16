@@ -204,7 +204,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues }: WaitlistClientBo
             {subscriptionState === "subscribed" ? "실시간 업데이트 중" : "연결 설정 중"}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Input
             id="queue-number-input"
             value={inputValue}
@@ -214,11 +214,15 @@ export const WaitlistClientBoard = ({ storeId, initialQueues }: WaitlistClientBo
             aria-labelledby="queue-number-label queue-number-helper"
             aria-invalid={validationTone === "error"}
             type="tel"
-            className="flex-1"
+            className="min-w-0 flex-1"
           />
           <button
             type="submit"
-            className={buttonClassName({ variant: "primary", size: "sm", className: "shrink-0 px-4" })}
+            className={buttonClassName({
+              variant: "primary",
+              size: "sm",
+              className: "flex-none px-5",
+            })}
           >
             확인
           </button>
