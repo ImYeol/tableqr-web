@@ -63,12 +63,11 @@ const MenuDetailPage = async ({ params }: { params: Promise<MenuDetailPageParams
 
   const { store, menu } = detail;
 
-  const categoryLabel =
-    typeof menu.category === "string"
-      ? menu.category.trim() || "추천 메뉴"
-      : typeof menu.category === "number"
-        ? `카테고리 ${menu.category}`
-        : "추천 메뉴";
+  const categoryLabel = menu.category?.trim()
+    ? menu.category.trim()
+    : menu.category_id != null
+      ? `카테고리 ${menu.category_id}`
+      : "추천 메뉴";
   const ingredients = parseIngredients(menu.description);
   const hasIngredients = ingredients.length > 0;
   const images = menu.image_url ? [{ src: menu.image_url, alt: `${menu.name} 이미지` }] : [];

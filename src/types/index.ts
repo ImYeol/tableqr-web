@@ -8,17 +8,30 @@ export interface Store {
   phone: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  business_hours: string | null;
+  notice: string | null;
 }
 
 export interface Menu {
   menu_id: number;
   store_id: number;
+  category_id: number | null;
+  category: string | null;
   name: string;
   description: string | null;
-  category?: string | number | null;
   price: number;
   image_url: string | null;
   is_active: boolean;
+  allergy_info: string[] | null;
+  display_order: number;
+}
+
+export interface MenuCategory {
+  category_id: number;
+  store_id: number;
+  name: string;
+  description: string | null;
+  display_order: number;
 }
 
 export interface Queue {
