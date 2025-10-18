@@ -144,7 +144,10 @@ export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
             const categoryLabel = resolveCategoryLabel(menu, categoryLookup, "시그니처");
             const isFavorite = favorites.includes(menu.menu_id);
             const highlightLabel = resolveHighlightLabel(menu);
-            const href = `/store/${menu.store_id}/menus/${menu.menu_id}`;
+            const href = {
+              pathname: `/store/${menu.store_id}/menus/${menu.menu_id}`,
+              query: { menu: encodeURIComponent(JSON.stringify(menu)) },
+            } as const;
 
             return (
               <Link key={menu.menu_id} href={href} className="group block">
@@ -157,27 +160,6 @@ export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
                         이미지 준비 중
                       </div>
                     )}
-                    <div className="absolute left-2.5 top-2.5 inline-flex items-center gap-2">
-                      <InfoPill variant="surface" className="bg-black/55 px-2.5 py-1 text-[0.65rem] text-white/95">
-                        {categoryLabel}
-                      </InfoPill>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        toggleFavorite(menu.menu_id);
-                      }}
-                      aria-label="즐겨찾기 토글"
-                      className={iconButtonClassName({
-                        variant: "ghost",
-                        size: "sm",
-                        className: "absolute right-2.5 top-2.5 bg-white text-brand-600 shadow-[0_14px_28px_-20px_rgba(15,49,33,0.3)]",
-                      })}
-                    >
-                      {isFavorite ? <HeartFillIcon className="h-5 w-5" /> : <HeartIcon className="h-5 w-5" />}
-                    </button>
                   </div>
 
                   <div className="flex flex-1 flex-col justify-center gap-2 text-left">
@@ -194,7 +176,7 @@ export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
                         <p className="text-[0.85rem] text-muted-foreground/75">주문량이 많은 인기 메뉴예요.</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-between">
                       <span className="text-[1.05rem] font-semibold text-brand-700">
                         {currencyFormatter.format(menu.price)}
                       </span>

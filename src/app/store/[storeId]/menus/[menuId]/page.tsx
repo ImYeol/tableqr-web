@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { MenuImageCarousel } from "@/components/features/store/MenuImageCarousel";
+import { MenuImageGallery } from "@/components/features/store/MenuImageGallery";
 import { MobileShell } from "@/components/ui/mobile-shell";
 import { IconButton, iconButtonClassName } from "@/components/ui/icon-button";
 import { ArrowLeftIcon, HeartIcon } from "@/components/ui/icons";
@@ -11,6 +11,45 @@ import type { Menu, Store } from "@/types";
 type MenuDetailPageParams = {
   storeId: string;
   menuId: string;
+};
+
+const decodeMenuFromSearchParams = (raw?: string | string[]): Menu | null => {
+  if (!raw || Array.isArray(raw)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(decodeURIComponent(raw)) as Partial<Menu>;
+
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+
+    const menuId = Number(payload.menu_id);
+    const storeId = Number(payload.store_id);
+
+    if (!Number.isFinite(menuId) || !Number.isFinite(storeId)) {
+      return null;
+    }
+
+    return {
+      menu_id: menuId,
+      store_id: storeId,
+      name: typeof payload.name === "string" ? payload.name : "메뉴",
+      description: typeof payload.description === "string" ? payload.description : null,
+      price: Number(payload.price ?? 0),
+      image_url: typeof payload.image_url === "string" ? payload.image_url : null,
+      is_active: payload.is_active !== false,
+      category_id: payload.category_id != null ? Number(payload.category_id) : null,
+      category: typeof payload.category === "string" ? payload.category : null,
+      allergy_info: Array.isArray(payload.allergy_info)
+        ? payload.allergy_info.filter((item): item is string => typeof item === "string")
+        : null,
+      display_order: Number(payload.display_order ?? 0),
+    };
+  } catch {
+    return null;
+  }
 };
 
 const fetchMenuDetail = async (
@@ -46,8 +85,14 @@ const formatCurrency = (value: number) =>
 
 export const dynamic = "force-dynamic";
 
-const MenuDetailPage = async ({ params }: { params: Promise<MenuDetailPageParams> }) => {
-  const { storeId: rawStoreId, menuId: rawMenuId } = await params;
+const MenuDetailPage = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<MenuDetailPageParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) => {
+  const [{ storeId: rawStoreId, menuId: rawMenuId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const storeId = Number(rawStoreId);
   const menuId = Number(rawMenuId);
 
@@ -55,7 +100,14 @@ const MenuDetailPage = async ({ params }: { params: Promise<MenuDetailPageParams
     notFound();
   }
 
-  const detail = await fetchMenuDetail(storeId, menuId);
+  const preloadedMenu = decodeMenuFromSearchParams(resolvedSearchParams?.menu);
+
+  const detail = preloadedMenu
+    ? {
+        store: getMockStore(storeId),
+        menu: preloadedMenu,
+      }
+    : await fetchMenuDetail(storeId, menuId);
 
   if (!detail) {
     notFound();
@@ -83,34 +135,34 @@ const MenuDetailPage = async ({ params }: { params: Promise<MenuDetailPageParams
   return (
     <MobileShell contentClassName="flex flex-1 flex-col px-0">
       <section
-        className="relative"
+        className="-mx-5"
         style={{ marginTop: "calc(-1 * var(--safe-top, 0px))" }}
       >
-        <div className="relative left-1/2 w-screen -translate-x-1/2">
+        <div className="relative mx-auto w-full max-w-[26.5rem]">
           <div className="relative aspect-[3/2] w-full overflow-hidden">
-            <MenuImageCarousel images={images} size="fluid" rounded={false} variant="flat" className="h-full w-full" />
-            <header className="pointer-events-none absolute inset-0 z-10 flex items-start justify-between px-[var(--spacing-gutter)] pt-[calc(var(--safe-top,0px)+0.75rem)]">
-              <Link
-                href={`/store/${store.store_id}`}
-                className={iconButtonClassName({
-                  variant: "ghost",
-                  size: "sm",
-                  className: "pointer-events-auto bg-black/35 text-white shadow-[0_14px_36px_-30px_rgba(0,0,0,0.45)] backdrop-blur",
-                })}
-                aria-label="매장으로 돌아가기"
-              >
-                <ArrowLeftIcon className="h-4 w-4" />
-              </Link>
-              <IconButton
-                aria-label="즐겨찾기"
-                variant="ghost"
-                size="sm"
-                className="pointer-events-auto bg-black/35 text-white shadow-[0_14px_36px_-30px_rgba(0,0,0,0.45)]"
-              >
-                <HeartIcon className="h-5 w-5" />
-              </IconButton>
-            </header>
+            <MenuImageGallery images={images} thumbnailSize="fluid" thumbnailVariant="flat" rounded={false} />
           </div>
+          <header className="pointer-events-none absolute inset-0 z-10 flex items-start justify-between px-[var(--spacing-gutter)] pt-[calc(var(--safe-top,0px)+0.75rem)]">
+            <Link
+              href={`/store/${store.store_id}`}
+              className={iconButtonClassName({
+                variant: "ghost",
+                size: "sm",
+                className: "pointer-events-auto bg-black/35 text-white shadow-[0_14px_36px_-30px_rgba(0,0,0,0.45)] backdrop-blur",
+              })}
+              aria-label="매장으로 돌아가기"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+            </Link>
+            <IconButton
+              aria-label="즐겨찾기"
+              variant="ghost"
+              size="sm"
+              className="pointer-events-auto bg-black/35 text-white shadow-[0_14px_36px_-30px_rgba(0,0,0,0.45)]"
+            >
+              <HeartIcon className="h-5 w-5" />
+            </IconButton>
+          </header>
         </div>
       </section>
 
