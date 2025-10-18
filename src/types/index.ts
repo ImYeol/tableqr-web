@@ -25,7 +25,7 @@ export interface Queue {
   queue_id: number;
   store_id: number;
   queue_number: number;
-  status: QueueStatus;
+  status: number;
   created_at: string;
   called_at: string | null;
 }
