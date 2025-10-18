@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent, MouseEvent, TouchEvent } from "react";
 
-import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/icon-button";
 import { ArrowLeftIcon, ArrowRightIcon } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 
 interface MenuImageCarouselProps {
   images: Array<{ src: string; alt: string }>;
@@ -12,6 +13,10 @@ interface MenuImageCarouselProps {
   size?: "default" | "expanded" | "full" | "fluid";
   rounded?: boolean;
   variant?: "elevated" | "flat";
+  imageFit?: "cover" | "contain";
+  initialIndex?: number;
+  onSlideChange?: (index: number) => void;
+  onExpand?: (index: number) => void;
 }
 
 const sizeStyles: Record<NonNullable<MenuImageCarouselProps["size"]>, string> = {
@@ -26,17 +31,43 @@ const containerVariantStyles: Record<NonNullable<MenuImageCarouselProps["variant
   flat: "bg-transparent shadow-none",
 };
 
+const clampIndex = (value: number, length: number) => {
+  if (length <= 0) {
+    return 0;
+  }
+  if (value < 0) {
+    return length - 1;
+  }
+  if (value >= length) {
+    return 0;
+  }
+  return value;
+};
+
 export const MenuImageCarousel = ({
   images,
   className,
   size = "default",
   rounded = true,
   variant = "elevated",
+  imageFit = "cover",
+  initialIndex,
+  onSlideChange,
+  onExpand,
 }: MenuImageCarouselProps) => {
-  const safeImages = useMemo(() => (images.length ? images : []), [images]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const heightClass = sizeStyles[size];
-  const containerVariantClass = containerVariantStyles[variant];
+  const safeImages = useMemo(() => images.filter((image) => Boolean(image.src)), [images]);
+  const [activeIndex, setActiveIndex] = useState(() => clampIndex(initialIndex ?? 0, safeImages.length));
+
+  useEffect(() => {
+    if (initialIndex == null) {
+      return;
+    }
+    setActiveIndex(clampIndex(initialIndex, safeImages.length));
+  }, [initialIndex, safeImages.length]);
+
+  useEffect(() => {
+    onSlideChange?.(activeIndex);
+  }, [activeIndex, onSlideChange]);
 
   if (!safeImages.length) {
     return (
@@ -47,7 +78,7 @@ export const MenuImageCarousel = ({
             ? "rounded-[calc(var(--radius-lg)+0.6rem)] bg-gradient-to-br from-brand-100 via-white to-brand-50 shadow-[0_36px_70px_-46px_rgba(31,27,22,0.5)]"
             : "bg-brand-50/60",
           rounded && "rounded-[calc(var(--radius-lg)+0.6rem)]",
-          heightClass,
+          sizeStyles[size],
           className,
         )}
       >
@@ -56,8 +87,53 @@ export const MenuImageCarousel = ({
     );
   }
 
-  const prev = () => setActiveIndex((prevIndex) => (prevIndex - 1 + safeImages.length) % safeImages.length);
-  const next = () => setActiveIndex((prevIndex) => (prevIndex + 1) % safeImages.length);
+  const heightClass = sizeStyles[size];
+  const containerVariantClass = containerVariantStyles[variant];
+  const objectFitClass = imageFit === "contain" ? "object-contain" : "object-cover";
+
+  const handlePrev = useCallback(
+    (event?: MouseEvent) => {
+      event?.stopPropagation();
+      setActiveIndex((prev) => (prev - 1 + safeImages.length) % safeImages.length);
+    },
+    [safeImages.length],
+  );
+
+  const handleNext = useCallback(
+    (event?: MouseEvent) => {
+      event?.stopPropagation();
+      setActiveIndex((prev) => (prev + 1) % safeImages.length);
+    },
+    [safeImages.length],
+  );
+
+  const handleSelect = useCallback(
+    (index: number, event?: MouseEvent) => {
+      event?.stopPropagation();
+      setActiveIndex(index);
+    },
+    [],
+  );
+
+  const requestExpand = useCallback(() => {
+    if (!onExpand) {
+      return;
+    }
+    onExpand(activeIndex);
+  }, [activeIndex, onExpand]);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (!onExpand) {
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        requestExpand();
+      }
+    },
+    [onExpand, requestExpand],
+  );
 
   return (
     <div
@@ -66,8 +142,18 @@ export const MenuImageCarousel = ({
         containerVariantClass,
         rounded && "rounded-[calc(var(--radius-lg)+0.6rem)]",
         heightClass,
+        onExpand && "cursor-zoom-in",
         className,
       )}
+      onClick={() => requestExpand()}
+      onTouchEnd={(event: TouchEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        requestExpand();
+      }}
+      role={onExpand ? "button" : undefined}
+      aria-label={onExpand ? "이미지 확대" : undefined}
+      tabIndex={onExpand ? 0 : undefined}
+      onKeyDown={onExpand ? handleKeyDown : undefined}
     >
       <div
         className="flex transition-transform duration-500 ease-out"
@@ -75,7 +161,7 @@ export const MenuImageCarousel = ({
       >
         {safeImages.map(({ src, alt }, index) => (
           <div key={src + index} className="relative h-full w-full shrink-0 overflow-hidden bg-black/5">
-            <img alt={alt} src={src} className="h-full w-full object-cover" />
+            <img alt={alt} src={src} className={cn("h-full w-full", objectFitClass)} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-black/5 to-transparent" />
           </div>
         ))}
@@ -85,7 +171,7 @@ export const MenuImageCarousel = ({
         <>
           <IconButton
             type="button"
-            onClick={prev}
+            onClick={handlePrev}
             aria-label="이전 이미지"
             size="sm"
             variant="ghost"
@@ -95,7 +181,7 @@ export const MenuImageCarousel = ({
           </IconButton>
           <IconButton
             type="button"
-            onClick={next}
+            onClick={handleNext}
             aria-label="다음 이미지"
             size="sm"
             variant="ghost"
@@ -107,15 +193,15 @@ export const MenuImageCarousel = ({
       ) : null}
 
       {safeImages.length > 1 ? (
-        <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2 rounded-full bg-black/35 px-4 py-2 backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2 rounded-full bg-black/35 px-4 py-2 backdrop-blur-sm">
           {safeImages.map((_, index) => (
             <button
               key={index}
               type="button"
-              onClick={() => setActiveIndex(index)}
+              onClick={(event) => handleSelect(index, event)}
               aria-label={`${index + 1}번째 이미지 보기`}
               className={cn(
-                "h-2.5 w-2.5 transition-colors",
+                "pointer-events-auto h-2.5 w-2.5 transition-colors",
                 index === activeIndex ? "bg-white" : "bg-white/40",
               )}
             />

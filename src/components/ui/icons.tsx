@@ -87,6 +87,14 @@ export const ArrowLeftIcon = createIcon(
 );
 ArrowLeftIcon.displayName = "ArrowLeftIcon";
 
+export const CloseIcon = createIcon(
+  <>
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </>,
+);
+CloseIcon.displayName = "CloseIcon";
+
 export const ClockIcon = createIcon(
   <>
     <circle cx={12} cy={12} r={8} />

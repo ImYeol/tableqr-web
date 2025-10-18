@@ -7,7 +7,7 @@ import { MenuGrid } from "@/components/features/store/MenuGrid";
 import { MobileActionBar } from "@/components/ui/mobile-action-bar";
 import { MobileShell } from "@/components/ui/mobile-shell";
 import { ShoppingBagIcon } from "@/components/ui/icons";
-import type { Menu, Store } from "@/types";
+import type { Menu, MenuCategory, Store } from "@/types";
 
 const currencyFormatter = new Intl.NumberFormat("ko-KR", {
   style: "currency",
@@ -18,10 +18,11 @@ const currencyFormatter = new Intl.NumberFormat("ko-KR", {
 interface StorePageClientProps {
   store: Store;
   menus: Menu[];
+  categories: MenuCategory[];
   queueHref: string;
 }
 
-export const StorePageClient = ({ store, menus, queueHref }: StorePageClientProps) => {
+export const StorePageClient = ({ store, menus, categories, queueHref }: StorePageClientProps) => {
   const [cartTotal, setCartTotal] = useState(0);
 
   const handleAddToCart = (menu: Menu) => {
@@ -32,8 +33,13 @@ export const StorePageClient = ({ store, menus, queueHref }: StorePageClientProp
 
   return (
     <MobileShell>
-      <MobileStoreHeader store={store} backHref="/" />
-      <MenuGrid menus={menus} onAddToCart={handleAddToCart} />
+      <MobileStoreHeader
+        store={store}
+        backHref="/"
+        operatingHours={store.business_hours ?? undefined}
+        notice={store.notice ?? null}
+      />
+      <MenuGrid menus={menus} categories={categories} onAddToCart={handleAddToCart} />
       <MobileActionBar
         totalLabel="총 가격"
         totalValue={formattedTotal}

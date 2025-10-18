@@ -1,30 +1,50 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
 import { buttonClassName } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getBrowserSupabaseClient } from "@/lib/supabaseClient";
-import type { Queue } from "@/types";
-
-type WaitlistQueue = Pick<Queue, "queue_id" | "queue_number" | "status">;
+import type { WaitlistMutationMessage, WaitlistQueue, WaitlistStreamMessage } from "@/types/waitlist";
 
 interface WaitlistClientBoardProps {
   storeId: number;
-  initialQueues: WaitlistQueue[];
+  initialQueues?: WaitlistQueue[];
 }
 
 const normalizeNumbers = (numbers: number[]) => Array.from(new Set(numbers)).sort((a, b) => a - b);
 const formatTicketNumber = (value: number) => value.toString().padStart(2, "0");
 
-export const WaitlistClientBoard = ({ storeId, initialQueues }: WaitlistClientBoardProps) => {
-  const [waitingNumbers, setWaitingNumbers] = useState<number[]>(() =>
-    normalizeNumbers(initialQueues.filter((queue) => queue.status === "WAITING").map((queue) => queue.queue_number)),
+const WAITING_STATUS = 0;
+const READY_STATUS = 1;
+const SERVED_STATUS = 2;
+
+const resolveStatusCode = (status: WaitlistQueue["status"]) => {
+  if (typeof status === "number") {
+    return status;
+  }
+
+  switch (status) {
+    case "WAITING":
+      return WAITING_STATUS;
+    case "CALLED":
+    case "DONE":
+      return READY_STATUS;
+    case "CANCELED":
+      return SERVED_STATUS;
+    default:
+      return WAITING_STATUS;
+  }
+};
+
+const extractNumbersByStatus = (queues: WaitlistQueue[], statusCode: number) =>
+  normalizeNumbers(
+    queues.filter((queue) => resolveStatusCode(queue.status) === statusCode).map((queue) => queue.queue_number),
   );
-  const [readyNumbers, setReadyNumbers] = useState<number[]>(() =>
-    normalizeNumbers(initialQueues.filter((queue) => queue.status === "DONE").map((queue) => queue.queue_number)),
-  );
+
+export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistClientBoardProps) => {
+  const [waitingNumbers, setWaitingNumbers] = useState<number[]>(() => extractNumbersByStatus(initialQueues, WAITING_STATUS));
+  const [readyNumbers, setReadyNumbers] = useState<number[]>(() => extractNumbersByStatus(initialQueues, READY_STATUS));
   const [inputValue, setInputValue] = useState("");
   const [subscribedNumber, setSubscribedNumber] = useState<number | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
@@ -34,71 +54,137 @@ export const WaitlistClientBoard = ({ storeId, initialQueues }: WaitlistClientBo
   const waitingSet = useMemo(() => new Set(waitingNumbers), [waitingNumbers]);
   const readySet = useMemo(() => new Set(readyNumbers), [readyNumbers]);
 
-  useEffect(() => {
-    setWaitingNumbers(
-      normalizeNumbers(initialQueues.filter((queue) => queue.status === "WAITING").map((queue) => queue.queue_number)),
-    );
-    setReadyNumbers(
-      normalizeNumbers(initialQueues.filter((queue) => queue.status === "DONE").map((queue) => queue.queue_number)),
-    );
-  }, [initialQueues]);
+  const applySnapshot = useCallback(
+    (queues: WaitlistQueue[]) => {
+      const nextWaiting = extractNumbersByStatus(queues, WAITING_STATUS);
+      const nextReady = extractNumbersByStatus(queues, READY_STATUS);
+      const servedNumbers = new Set(
+        queues
+          .filter((queue) => resolveStatusCode(queue.status) === SERVED_STATUS)
+          .map((queue) => queue.queue_number),
+      );
 
-  useEffect(() => {
-    const supabase = getBrowserSupabaseClient();
-    const channel = supabase
-      .channel(`waitlist-store-${storeId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "queues", filter: `store_id=eq.${storeId}` },
-        (payload) => {
-          const nextQueue = (payload.new as Queue | null) ?? null;
-          const previousQueue = (payload.old as Queue | null) ?? null;
+      setWaitingNumbers(nextWaiting);
+      setReadyNumbers(nextReady);
 
-          if (payload.eventType === "DELETE" && previousQueue) {
-            if (previousQueue.status === "WAITING") {
-              setWaitingNumbers((current) =>
-                normalizeNumbers(current.filter((number) => number !== previousQueue.queue_number)),
-              );
-            }
-            if (previousQueue.status === "DONE") {
-              setReadyNumbers((current) =>
-                normalizeNumbers(current.filter((number) => number !== previousQueue.queue_number)),
-              );
-            }
-            return;
+      if (servedNumbers.size > 0) {
+        setSubscribedNumber((current) => {
+          if (current != null && servedNumbers.has(current)) {
+            setValidationTone("info");
+            setValidationMessage(`주문 번호 ${formatTicketNumber(current)}가 완료되어 목록에서 제외됐어요.`);
+            return null;
           }
+          return current;
+        });
+      }
+    },
+    [setSubscribedNumber, setValidationMessage, setValidationTone],
+  );
 
-          if (!nextQueue) {
-            return;
+  const pruneQueueNumber = useCallback((queueNumber: number) => {
+    setWaitingNumbers((current) => normalizeNumbers(current.filter((number) => number !== queueNumber)));
+    setReadyNumbers((current) => normalizeNumbers(current.filter((number) => number !== queueNumber)));
+  }, []);
+
+  const applyMutation = useCallback(
+    (mutation: WaitlistMutationMessage["data"]) => {
+      const previousQueue = mutation.old ?? null;
+      const nextQueue = mutation.new ?? null;
+      const nextQueueNumber = nextQueue?.queue_number ?? null;
+
+      if (!nextQueue) {
+        return;
+      }
+
+      if (previousQueue && previousQueue.queue_number !== nextQueue.queue_number) {
+        pruneQueueNumber(previousQueue.queue_number);
+      }
+
+      if (nextQueueNumber != null) {
+        pruneQueueNumber(nextQueueNumber);
+      }
+
+      const statusCode = resolveStatusCode(nextQueue.status);
+
+      if (statusCode === SERVED_STATUS || nextQueueNumber == null) {
+        return;
+      }
+
+      if (statusCode === WAITING_STATUS) {
+        setWaitingNumbers((current) => normalizeNumbers([...current, nextQueueNumber]));
+        return;
+      }
+
+      if (statusCode === READY_STATUS) {
+        setReadyNumbers((current) => normalizeNumbers([...current, nextQueueNumber]));
+      }
+    },
+    [pruneQueueNumber],
+  );
+
+  useEffect(() => {
+    applySnapshot(initialQueues);
+  }, [applySnapshot, initialQueues]);
+
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUnmounted = false;
+
+    const connect = () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      setSubscriptionState("idle");
+      eventSource = new EventSource(`/api/stores/${storeId}/queues/stream`);
+
+      eventSource.onopen = () => {
+        setSubscriptionState("subscribed");
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data) as WaitlistStreamMessage;
+          if (payload.type === "snapshot") {
+            applySnapshot(payload.data);
           }
-
-          setWaitingNumbers((current) => {
-            const withoutCurrent = current.filter((number) => number !== nextQueue.queue_number);
-            if (nextQueue.status === "WAITING") {
-              return normalizeNumbers([...withoutCurrent, nextQueue.queue_number]);
-            }
-            return normalizeNumbers(withoutCurrent);
-          });
-
-          setReadyNumbers((current) => {
-            const withoutCurrent = current.filter((number) => number !== nextQueue.queue_number);
-            if (nextQueue.status === "DONE") {
-              return normalizeNumbers([...withoutCurrent, nextQueue.queue_number]);
-            }
-            return normalizeNumbers(withoutCurrent);
-          });
-        },
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          setSubscriptionState("subscribed");
+          if (payload.type === "mutation") {
+            applyMutation(payload.data);
+          }
+        } catch {
+          // no-op: ignore malformed event payloads
         }
-      });
+      };
+
+      eventSource.onerror = () => {
+        if (isUnmounted) {
+          return;
+        }
+
+        setSubscriptionState("idle");
+        eventSource?.close();
+
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+        }
+
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
 
     return () => {
-      supabase.removeChannel(channel);
+      isUnmounted = true;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      if (eventSource) {
+        eventSource.close();
+      }
     };
-  }, [storeId]);
+  }, [applyMutation, applySnapshot, storeId]);
 
   useEffect(() => {
     if (!subscribedNumber) {

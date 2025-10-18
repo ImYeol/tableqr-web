@@ -7,10 +7,11 @@ import { iconButtonClassName } from "@/components/ui/icon-button";
 import { InfoPill } from "@/components/ui/info-pill";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { HeartFillIcon, HeartIcon, ShoppingBagIcon } from "@/components/ui/icons";
-import type { Menu } from "@/types";
+import type { Menu, MenuCategory } from "@/types";
 
 interface MenuGridProps {
   menus: Menu[];
+  categories: MenuCategory[];
   onAddToCart?: (menu: Menu) => void;
 }
 
@@ -18,17 +19,6 @@ const currencyFormatter = new Intl.NumberFormat("ko-KR", {
   style: "currency",
   currency: "KRW",
 });
-
-const normalizeCategory = (raw?: string | number | null) => {
-  if (typeof raw === "string") {
-    const trimmed = raw.trim();
-    return trimmed.length ? trimmed : "시그니처";
-  }
-  if (typeof raw === "number") {
-    return `카테고리 ${raw}`;
-  }
-  return "시그니처";
-};
 
 const resolveHighlightLabel = (menu: Menu): string | null => {
   const sources = [menu.category, menu.description, menu.name];
@@ -39,10 +29,22 @@ const resolveHighlightLabel = (menu: Menu): string | null => {
     }
 
     const normalized = source.toLowerCase();
-    if (normalized.includes("new") || normalized.includes("신메뉴") || normalized.includes("new.") || normalized.includes("new!") || normalized.includes("신상")) {
+    if (
+      normalized.includes("new") ||
+      normalized.includes("신메뉴") ||
+      normalized.includes("new.") ||
+      normalized.includes("new!") ||
+      normalized.includes("신상")
+    ) {
       return "New";
     }
-    if (normalized.includes("best") || normalized.includes("signature") || normalized.includes("favorite") || normalized.includes("시그니처") || normalized.includes("추천")) {
+    if (
+      normalized.includes("best") ||
+      normalized.includes("signature") ||
+      normalized.includes("favorite") ||
+      normalized.includes("시그니처") ||
+      normalized.includes("추천")
+    ) {
       return "Best";
     }
   }
@@ -50,24 +52,76 @@ const resolveHighlightLabel = (menu: Menu): string | null => {
   return null;
 };
 
-export const MenuGrid = ({ menus, onAddToCart }: MenuGridProps) => {
-  const [activeCategory, setActiveCategory] = useState("전체");
+const resolveCategoryLabel = (
+  menu: Menu,
+  categoryLookup: Map<number, MenuCategory>,
+  fallbackLabel: string,
+) => {
+  if (menu.category_id != null) {
+    const category = categoryLookup.get(menu.category_id);
+    if (category?.name) {
+      return category.name;
+    }
+  }
+
+  if (typeof menu.category === "string" && menu.category.trim().length > 0) {
+    return menu.category;
+  }
+
+  return fallbackLabel;
+};
+
+export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
+  const [activeCategory, setActiveCategory] = useState("all");
   const [favorites, setFavorites] = useState<number[]>([]);
 
-  const categories = useMemo(() => {
-    const unique = new Set<string>();
-    menus.forEach((menu) => unique.add(normalizeCategory(menu.category)));
-    return ["전체", ...Array.from(unique)];
-  }, [menus]);
-
-  const filteredMenus = useMemo(
-    () =>
-      menus.filter((menu) => {
-        const category = normalizeCategory(menu.category);
-        return activeCategory === "전체" || category === activeCategory;
-      }),
-    [menus, activeCategory],
+  const orderedCategories = useMemo(
+    () => categories.slice().sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
+    [categories],
   );
+
+  const categoryLookup = useMemo(
+    () => new Map<number, MenuCategory>(orderedCategories.map((category) => [category.category_id, category])),
+    [orderedCategories],
+  );
+
+  const hasUncategorized = useMemo(() => menus.some((menu) => menu.category_id == null), [menus]);
+
+  const segmentedOptions = useMemo(() => {
+    const baseOptions = orderedCategories.map((category) => ({
+      label: category.name ?? `카테고리 ${category.category_id}`,
+      value: String(category.category_id),
+    }));
+
+    const options = [{ label: "전체", value: "all" }, ...baseOptions];
+
+    if (hasUncategorized) {
+      options.push({ label: "기타", value: "uncategorized" });
+    }
+
+    return options;
+  }, [orderedCategories, hasUncategorized]);
+
+  const sortedMenus = useMemo(
+    () =>
+      menus
+        .slice()
+        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+        .filter((menu) => menu.is_active),
+    [menus],
+  );
+
+  const filteredMenus = useMemo(() => {
+    if (activeCategory === "all") {
+      return sortedMenus;
+    }
+
+    if (activeCategory === "uncategorized") {
+      return sortedMenus.filter((menu) => menu.category_id == null);
+    }
+
+    return sortedMenus.filter((menu) => String(menu.category_id ?? "") === activeCategory);
+  }, [sortedMenus, activeCategory]);
 
   const toggleFavorite = (menuId: number) =>
     setFavorites((prev) => (prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]));
@@ -81,20 +135,19 @@ export const MenuGrid = ({ menus, onAddToCart }: MenuGridProps) => {
             <h2 className="mt-1 text-lg font-semibold text-foreground">원하는 메뉴를 선택해 보세요</h2>
           </div>
         </div>
-        <SegmentedControl
-          options={categories.map((category) => ({ label: category, value: category }))}
-          value={activeCategory}
-          onValueChange={setActiveCategory}
-        />
+        <SegmentedControl options={segmentedOptions} value={activeCategory} onValueChange={setActiveCategory} />
       </div>
 
       <div className="space-y-4">
         {filteredMenus.length ? (
           filteredMenus.map((menu) => {
-            const category = normalizeCategory(menu.category);
+            const categoryLabel = resolveCategoryLabel(menu, categoryLookup, "시그니처");
             const isFavorite = favorites.includes(menu.menu_id);
             const highlightLabel = resolveHighlightLabel(menu);
-            const href = `/store/${menu.store_id}/menus/${menu.menu_id}`;
+            const href = {
+              pathname: `/store/${menu.store_id}/menus/${menu.menu_id}`,
+              query: { menu: encodeURIComponent(JSON.stringify(menu)) },
+            } as const;
 
             return (
               <Link key={menu.menu_id} href={href} className="group block">
@@ -107,27 +160,6 @@ export const MenuGrid = ({ menus, onAddToCart }: MenuGridProps) => {
                         이미지 준비 중
                       </div>
                     )}
-                    <div className="absolute left-2.5 top-2.5 inline-flex items-center gap-2">
-                      <InfoPill variant="surface" className="bg-black/55 px-2.5 py-1 text-[0.65rem] text-white/95">
-                        {category}
-                      </InfoPill>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        toggleFavorite(menu.menu_id);
-                      }}
-                      aria-label="즐겨찾기 토글"
-                      className={iconButtonClassName({
-                        variant: "ghost",
-                        size: "sm",
-                        className: "absolute right-2.5 top-2.5 bg-white text-brand-600 shadow-[0_14px_28px_-20px_rgba(15,49,33,0.3)]",
-                      })}
-                    >
-                      {isFavorite ? <HeartFillIcon className="h-5 w-5" /> : <HeartIcon className="h-5 w-5" />}
-                    </button>
                   </div>
 
                   <div className="flex flex-1 flex-col justify-center gap-2 text-left">
@@ -144,7 +176,7 @@ export const MenuGrid = ({ menus, onAddToCart }: MenuGridProps) => {
                         <p className="text-[0.85rem] text-muted-foreground/75">주문량이 많은 인기 메뉴예요.</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-between">
                       <span className="text-[1.05rem] font-semibold text-brand-700">
                         {currencyFormatter.format(menu.price)}
                       </span>
