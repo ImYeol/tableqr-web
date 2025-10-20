@@ -140,7 +140,13 @@ const MenuDetailPage = async ({
       >
         <div className="relative mx-auto w-full max-w-[26.5rem]">
           <div className="relative aspect-[3/2] w-full overflow-hidden">
-            <MenuImageGallery images={images} thumbnailSize="fluid" thumbnailVariant="flat" rounded={false} />
+            <MenuImageGallery
+              images={images}
+              thumbnailSize="fluid"
+              thumbnailVariant="flat"
+              rounded={false}
+              imageFit="contain"
+            />
           </div>
           <header className="pointer-events-none absolute inset-0 z-10 flex items-start justify-between px-[var(--spacing-gutter)] pt-[calc(var(--safe-top,0px)+0.75rem)]">
             <Link
@@ -187,7 +193,7 @@ const MenuDetailPage = async ({
           ))}
         </dl>
 
-        <div className="space-y-4">
+        {/* <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">구성 성분</h2>
             <span className="inline-flex items-center rounded-[var(--radius-pill)] bg-surface-muted px-3 py-1 text-xs font-medium text-muted-foreground/80">
@@ -212,7 +218,7 @@ const MenuDetailPage = async ({
               구성 성분 정보가 준비 중입니다. 곧 업데이트될 예정입니다.
             </div>
           )}
-        </div>
+        </div> */}
       </section>
     </MobileShell>
   );
