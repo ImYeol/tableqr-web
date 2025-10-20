@@ -13,6 +13,7 @@ interface MenuImageGalleryProps {
   thumbnailVariant?: "elevated" | "flat";
   rounded?: boolean;
   className?: string;
+  imageFit?: "cover" | "contain";
 }
 
 export const MenuImageGallery = ({
@@ -21,6 +22,7 @@ export const MenuImageGallery = ({
   thumbnailVariant = "flat",
   rounded = true,
   className,
+  imageFit,
 }: MenuImageGalleryProps) => {
   const safeImages = useMemo(() => images.filter((image) => Boolean(image.src)), [images]);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -65,6 +67,7 @@ export const MenuImageGallery = ({
         variant={thumbnailVariant}
         rounded={rounded}
         className={className}
+        imageFit={imageFit}
       />
     );
   }
@@ -77,6 +80,7 @@ export const MenuImageGallery = ({
         variant={thumbnailVariant}
         rounded={rounded}
         className={className}
+        imageFit={imageFit}
         onExpand={handleOpen}
         onSlideChange={setActiveIndex}
       />

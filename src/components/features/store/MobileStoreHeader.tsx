@@ -39,9 +39,6 @@ export const MobileStoreHeader = ({
 
           <div className="absolute inset-x-0 top-0 flex items-center justify-end px-4 pt-[calc(var(--safe-top,0px)+0.6rem)]">
             <div className="flex items-center gap-2">
-              <IconButton aria-label="즐겨찾기 등록" variant="ghost" size="sm" className="bg-black/35 text-white">
-                <HeartIcon className="h-5 w-5" />
-              </IconButton>
               <IconButton aria-label="공유하기" variant="ghost" size="sm" className="bg-black/35 text-white">
                 <ShareIcon className="h-5 w-5" />
               </IconButton>
@@ -49,11 +46,13 @@ export const MobileStoreHeader = ({
           </div>
           <div className="absolute inset-x-0 bottom-0 flex justify-start px-5 pb-5">
             {store.logo_url ? (
-              <img
-                src={store.logo_url}
-                alt={`${store.name} 로고`}
-                className="h-16 w-16 rounded-full border border-white/80 object-cover shadow-[0_18px_32px_-22px_rgba(0,0,0,0.55)]"
-              />
+              <div className="h-16 w-16 rounded-full overflow-hidden border border-white/80 shadow-[0_18px_32px_-22px_rgba(0,0,0,0.55)]">
+                <img
+                  src={store.logo_url}
+                  alt={`${store.name} 로고`}
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
             ) : (
               <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/25 text-lg font-semibold text-white">
                 {store.name.slice(0, 2)}
