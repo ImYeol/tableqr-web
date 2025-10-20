@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabaseClient";
 import type { Store } from "@/types";
 
+export const revalidate = 60;
+
 type StoreListItem = Pick<Store, "store_id" | "name" | "description" | "cover_url" | "address">;
 
 const fetchStores = async () => {
