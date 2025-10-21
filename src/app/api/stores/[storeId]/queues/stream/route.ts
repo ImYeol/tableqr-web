@@ -1,6 +1,7 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 import { createSupabaseClient } from "@/lib/supabaseClient";
+import { buildReadyNotification, sendMulticastNotification } from "@/lib/firebaseAdmin";
 import type { Queue } from "@/types";
 import type { WaitlistQueue, WaitlistStreamMessage } from "@/types/waitlist";
 
@@ -66,13 +67,93 @@ export async function GET(request: Request, { params }: { params: Promise<Stream
       );
       controller.enqueue(createSseChunk({ type: "snapshot", data: snapshotData }));
 
-      const handlePayload = (payload: RealtimePostgresChangesPayload<Queue>) => {
-        console.log("Received payload:", payload);
+      const handlePayload = async (payload: RealtimePostgresChangesPayload<Queue>) => {
+        console.debug("[queues/stream] payload", {
+          eventType: payload.eventType,
+          newStatus: (payload.new as any)?.status,
+          oldStatus: (payload.old as any)?.status,
+          storeId,
+        });
         const payloadStoreId =
           ((payload.new as Queue | null)?.store_id ?? (payload.old as Queue | null)?.store_id) ?? null;
 
         if (payloadStoreId !== storeId) {
           return;
+        }
+
+        // Server-side FCM dispatch: when status transitions to READY (1)
+        try {
+          const newRow = (payload.new as Queue | null) ?? null;
+          const oldRow = (payload.old as Queue | null) ?? null;
+          const becameReady = newRow && newRow.status === 1 && (!oldRow || oldRow.status !== 1);
+
+          if (becameReady) {
+            const queueNumber = newRow.queue_number;
+            console.debug("[queues/stream] became ready -> notify", { storeId, queueNumber });
+
+            const [{ data: store, error: storeError }, { data: notifications, error: notificationError }] =
+              await Promise.all([
+                supabase.from("stores").select("name").eq("store_id", storeId).maybeSingle(),
+                supabase
+                  .from("queue_notifications")
+                  .select("id, fcm_token")
+                  .eq("store_id", storeId)
+                  .eq("queue_number", queueNumber),
+              ]);
+
+            if (storeError) {
+              console.error("[queues/stream] store load error", storeError);
+            }
+            if (notificationError) {
+              console.error("[queues/stream] notifications load error", notificationError);
+            }
+
+            if (notifications && notifications.length > 0) {
+              const tokens = notifications.map((n) => n.fcm_token);
+              const notif = buildReadyNotification({ storeName: store?.name ?? "TableQR", queueNumber });
+              const result = await sendMulticastNotification({
+                ...notif,
+                tokens,
+                android: { notification: { channelId: "order-status", sound: "default" } },
+                webpush: {
+                  headers: { Urgency: "high" },
+                  notification: {
+                    title: notif.notification?.title,
+                    body: notif.notification?.body,
+                    icon: "/file.svg",
+                    tag: `queue-${storeId}-${queueNumber}`,
+                  },
+                },
+              });
+
+              console.debug("[queues/stream] multicast result", {
+                successCount: result.successCount,
+                failureCount: result.failureCount,
+              });
+
+              const succeededIds = notifications
+                .filter((_, i) => result.responses[i]?.success)
+                .map((n) => n.id);
+              const permanentlyFailedIds = notifications
+                .filter((_, i) => {
+                  const code = result.responses[i]?.error?.code;
+                  return (
+                    code === "messaging/registration-token-not-registered" ||
+                    code === "messaging/invalid-registration-token"
+                  );
+                })
+                .map((n) => n.id);
+              const idsToDelete = [...new Set([...succeededIds, ...permanentlyFailedIds])];
+              if (idsToDelete.length > 0) {
+                console.debug("[queues/stream] cleanup queue_notifications", { ids: idsToDelete });
+                await supabase.from("queue_notifications").delete().in("id", idsToDelete);
+              }
+            } else {
+              console.debug("[queues/stream] no tokens to notify", { storeId, queueNumber });
+            }
+          }
+        } catch (err) {
+          console.error("[queues/stream] notify error", err);
         }
 
         const message: WaitlistStreamMessage = {

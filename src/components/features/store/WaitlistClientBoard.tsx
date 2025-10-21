@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 
 import { buttonClassName } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getMessagingServiceWorkerRegistration, requestPermissionAndToken, subscribeForegroundMessages } from "@/lib/firebaseClient";
 import type { WaitlistMutationMessage, WaitlistQueue, WaitlistStreamMessage } from "@/types/waitlist";
 
 interface WaitlistClientBoardProps {
@@ -50,6 +51,8 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [validationTone, setValidationTone] = useState<"info" | "success" | "error">("info");
   const [subscriptionState, setSubscriptionState] = useState<"idle" | "subscribed">("idle");
+  const [notificationToken, setNotificationToken] = useState<string | null>(null);
+  const [isRegisteringNotification, setIsRegisteringNotification] = useState(false);
 
   const waitingSet = useMemo(() => new Set(waitingNumbers), [waitingNumbers]);
   const readySet = useMemo(() => new Set(readyNumbers), [readyNumbers]);
@@ -203,14 +206,27 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
     }
   }, [readySet, waitingSet, subscribedNumber]);
 
+  useEffect(() => {
+    // Ensure SW is registered; subscribe to foreground FCM for visible alerts
+    void getMessagingServiceWorkerRegistration();
+    const unsubscribe = subscribeForegroundMessages();
+    return () => unsubscribe();
+  }, []);
+
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const digitsOnly = event.target.value.replace(/\D/g, "");
     setInputValue(digitsOnly);
     setValidationMessage(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setValidationMessage(null);
+
+    if (isRegisteringNotification) {
+      return;
+    }
+
     const digitsOnly = inputValue.trim();
 
     if (!digitsOnly) {
@@ -235,9 +251,55 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
       return;
     }
 
-    setSubscribedNumber(parsed);
-    setValidationTone("success");
-    setValidationMessage(`주문 번호 ${formatTicketNumber(parsed)} 알림을 등록했어요.`);
+    setIsRegisteringNotification(true);
+
+    try {
+      let token = notificationToken;
+
+      if (!token) {
+        token = await requestPermissionAndToken();
+        if (!token) {
+          throw new Error("푸시 알림 권한을 허용해 주세요.");
+        }
+        setNotificationToken(token);
+      }
+
+      console.debug("[queue-notifications] registering", {
+        storeId,
+        queueNumber: parsed,
+        tokenPreview: token ? `${token.slice(0, 8)}...` : null,
+      });
+
+      const response = await fetch(`/api/stores/${storeId}/queue-notifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          queueNumber: parsed,
+          fcmToken: token,
+        }),
+      });
+
+      const debugText = await response.clone().text().catch(() => "<no-body>");
+      console.debug("[queue-notifications] response", { status: response.status, body: debugText });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string; details?: string; code?: string } | null;
+        throw new Error(payload?.error ?? "알림 등록에 실패했어요.");
+      }
+
+      setSubscribedNumber(parsed);
+      setValidationTone("success");
+      setValidationMessage(`주문 번호 ${formatTicketNumber(parsed)} 알림을 등록했어요.`);
+    } catch (error) {
+      console.error("[queue-notifications] register error", error);
+      setSubscribedNumber(null);
+      setValidationTone("error");
+      setValidationMessage(error instanceof Error ? error.message : "알림 등록 중 문제가 발생했어요.");
+    } finally {
+      setIsRegisteringNotification(false);
+    }
   };
 
   const renderTicketList = (title: string, numbers: number[], circleClassName: string) => (
@@ -304,6 +366,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
           />
           <button
             type="submit"
+            disabled={isRegisteringNotification}
             className={buttonClassName({
               variant: "primary",
               size: "sm",
