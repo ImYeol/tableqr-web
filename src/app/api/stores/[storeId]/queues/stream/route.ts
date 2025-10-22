@@ -122,6 +122,8 @@ export async function GET(request: Request, { params }: { params: Promise<Stream
                     body: notif.notification?.body,
                     icon: "/file.svg",
                     tag: `queue-${storeId}-${queueNumber}`,
+                    sound: "default",
+                    vibrate: [200, 100, 200],
                   },
                 },
               });

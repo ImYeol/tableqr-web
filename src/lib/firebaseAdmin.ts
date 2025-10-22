@@ -34,6 +34,8 @@ export const buildReadyNotification = (params: { storeName: string; queueNumber:
     notification: {
       title: `${storeName}`,
       body: `주문 번호 ${formattedNumber} 준비가 완료되었습니다.`,
+      sound: "default",
+      vibrate: [200, 100, 200],
     },
     data: {
       queueNumber: String(queueNumber),
