@@ -27,10 +27,6 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
 NEXT_PUBLIC_FIREBASE_VAPID_KEY=...
-
-FIREBASE_PROJECT_ID=...
-FIREBASE_CLIENT_EMAIL=...
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
 ## Queue Notification Flow
@@ -39,8 +35,9 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 2. The browser requests FCM permissions, obtains a token, and sends `{ store_id, queue_number, fcm_token }` to `/api/stores/[storeId]/queue-notifications`.
 3. Tokens are stored in the `queue_notifications` table (create via Supabase migration).
 4. Admins mark a queue as ready by calling `POST /api/stores/[storeId]/queues/[queueNumber]/ready`.
-5. The API updates the queue status, loads the stored tokens, and sends an FCM push notification.
-6. Customers receive “주문이 준비되었습니다” notifications in the browser.
+5. A Supabase trigger captures the status change, writes to `queue_notifications` (e.g. mark as `pending`) and invokes an Edge Function.
+6. A scheduled Edge Function (cron) reads pending rows and sends FCM push notifications.
+7. Customers receive “주문이 준비되었습니다” notifications in the browser.
 
 > Ensure the `queue_notifications` table exists:
 

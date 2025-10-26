@@ -1,12 +1,13 @@
 'use client';
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { iconButtonClassName } from "@/components/ui/icon-button";
-import { InfoPill } from "@/components/ui/info-pill";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { HeartFillIcon, HeartIcon, ShoppingBagIcon } from "@/components/ui/icons";
+import { DEFAULT_BLUR_DATA_URL, resolveMenuImageSrc } from "@/lib/images";
 import type { Menu, MenuCategory } from "@/types";
 
 interface MenuGridProps {
@@ -149,12 +150,23 @@ export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
               query: { menu: encodeURIComponent(JSON.stringify(menu)) },
             } as const;
 
+            const imageSrc = resolveMenuImageSrc(menu);
+
             return (
               <Link key={menu.menu_id} href={href} className="group block">
                 <article className="flex items-center gap-3.5 rounded-[var(--radius-xl)] bg-[var(--color-surface)] px-3 py-3.5 shadow-[var(--shadow-card)] transition-transform duration-150 group-hover:-translate-y-0.5">
                   <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[calc(var(--radius-xl)-1rem)] bg-surface-muted">
-                    {menu.image_url ? (
-                      <img src={menu.image_url} alt={`${menu.name} 이미지`} className="h-full w-full object-cover" />
+                    {imageSrc ? (
+                      <Image
+                        src={imageSrc}
+                        alt={`${menu.name} 이미지`}
+                        fill
+                        sizes="96px"
+                        className="object-cover"
+                        loading="lazy"
+                        placeholder="blur"
+                        blurDataURL={DEFAULT_BLUR_DATA_URL}
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-200/70 via-brand-100 to-brand-50 text-brand-700">
                         이미지 준비 중
@@ -180,22 +192,6 @@ export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
                       <span className="text-[1.05rem] font-semibold text-brand-700">
                         {currencyFormatter.format(menu.price)}
                       </span>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          onAddToCart?.(menu);
-                        }}
-                        aria-label="장바구니에 추가"
-                        className={iconButtonClassName({
-                          variant: "primary",
-                          size: "xs",
-                          className: "shadow-none",
-                        })}
-                      >
-                        <ShoppingBagIcon className="h-4 w-4" />
-                      </button>
                     </div>
                   </div>
                 </article>
