@@ -25,6 +25,7 @@ const BASE_MENUS: Menu[] = [
     is_active: true,
     allergy_info: ["우유", "견과류"],
     display_order: 0,
+    updated_at: "2024-01-01T00:00:00.000Z",
   },
   {
     menu_id: 102,
@@ -38,6 +39,7 @@ const BASE_MENUS: Menu[] = [
     is_active: true,
     allergy_info: null,
     display_order: 1,
+    updated_at: "2024-01-05T00:00:00.000Z",
   },
   {
     menu_id: 103,
@@ -51,6 +53,7 @@ const BASE_MENUS: Menu[] = [
     is_active: true,
     allergy_info: ["밀", "우유", "달걀"],
     display_order: 2,
+    updated_at: "2024-01-10T00:00:00.000Z",
   },
   {
     menu_id: 104,
@@ -64,6 +67,7 @@ const BASE_MENUS: Menu[] = [
     is_active: true,
     allergy_info: ["우유"],
     display_order: 3,
+    updated_at: "2024-01-12T00:00:00.000Z",
   },
 ];
 

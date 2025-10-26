@@ -1,10 +1,12 @@
 'use client';
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent, MouseEvent, TouchEvent } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
 import { ArrowLeftIcon, ArrowRightIcon } from "@/components/ui/icons";
+import { DEFAULT_BLUR_DATA_URL } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 interface MenuImageCarouselProps {
@@ -23,7 +25,7 @@ const sizeStyles: Record<NonNullable<MenuImageCarouselProps["size"]>, string> = 
   default: "h-[360px] sm:h-[440px] lg:h-[500px]",
   expanded: "h-[440px] sm:h-[560px] lg:h-[660px]",
   full: "min-h-[60vh] sm:min-h-[70vh] lg:min-h-[80vh]",
-  fluid: "h-full",
+  fluid: "aspect-video min-h-[16rem] sm:min-h-[20rem]",
 };
 
 const containerVariantStyles: Record<NonNullable<MenuImageCarouselProps["variant"]>, string> = {
@@ -161,7 +163,17 @@ export const MenuImageCarousel = ({
       >
         {safeImages.map(({ src, alt }, index) => (
           <div key={src + index} className="relative h-full w-full shrink-0 overflow-hidden bg-black/5">
-            <img alt={alt} src={src} className={cn("h-full w-full", objectFitClass)} />
+            <Image
+              alt={alt}
+              src={src}
+              fill
+              sizes="100vw"
+              className={cn("object-center", objectFitClass)}
+              priority={index === 0}
+              loading={index === 0 ? undefined : "lazy"}
+              placeholder="blur"
+              blurDataURL={DEFAULT_BLUR_DATA_URL}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-black/5 to-transparent" />
           </div>
         ))}

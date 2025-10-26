@@ -24,6 +24,7 @@ export interface Menu {
   is_active: boolean;
   allergy_info: string[] | null;
   display_order: number;
+  updated_at: string | null;
 }
 
 export interface MenuCategory {
@@ -41,4 +42,12 @@ export interface Queue {
   status: number;
   created_at: string;
   called_at: string | null;
+}
+
+export interface StoreCachePayload {
+  store: Store;
+  menus: Menu[];
+  categories: MenuCategory[];
+  cachedAt: string;
+  source: "supabase" | "mock";
 }

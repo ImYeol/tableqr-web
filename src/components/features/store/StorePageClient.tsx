@@ -7,7 +7,8 @@ import { MenuGrid } from "@/components/features/store/MenuGrid";
 import { MobileActionBar } from "@/components/ui/mobile-action-bar";
 import { MobileShell } from "@/components/ui/mobile-shell";
 import { ShoppingBagIcon } from "@/components/ui/icons";
-import type { Menu, MenuCategory, Store } from "@/types";
+import { useStoreCache } from "@/hooks/useStoreCache";
+import type { Menu, StoreCachePayload } from "@/types";
 
 const currencyFormatter = new Intl.NumberFormat("ko-KR", {
   style: "currency",
@@ -16,14 +17,18 @@ const currencyFormatter = new Intl.NumberFormat("ko-KR", {
 });
 
 interface StorePageClientProps {
-  store: Store;
-  menus: Menu[];
-  categories: MenuCategory[];
+  storeId: number;
+  initialData: StoreCachePayload;
   queueHref: string;
 }
 
-export const StorePageClient = ({ store, menus, categories, queueHref }: StorePageClientProps) => {
+export const StorePageClient = ({ storeId, initialData, queueHref }: StorePageClientProps) => {
   const [cartTotal, setCartTotal] = useState(0);
+  const { data } = useStoreCache(storeId, initialData);
+  const payload = data ?? initialData;
+  const store = payload.store;
+  const menus = payload.menus;
+  const categories = payload.categories;
 
   const handleAddToCart = (menu: Menu) => {
     setCartTotal((prev) => prev + menu.price);
