@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { MenuImageCarousel } from "@/components/features/store/MenuImageCarousel";
 import { IconButton, iconButtonClassName } from "@/components/ui/icon-button";
-import { ArrowLeftIcon, HeartIcon } from "@/components/ui/icons";
+import { ArrowLeftIcon, CloseIcon, HeartIcon } from "@/components/ui/icons";
 import { MobileShell } from "@/components/ui/mobile-shell";
 import { useStoreCache } from "@/hooks/useStoreCache";
 import { DEFAULT_BLUR_DATA_URL, buildVersionedImageUrl } from "@/lib/images";
@@ -127,14 +127,6 @@ export const MenuDetailClient = ({
             >
               <ArrowLeftIcon className="h-4 w-4" />
             </Link>
-            <IconButton
-              aria-label="즐겨찾기"
-              variant="ghost"
-              size="sm"
-              className="pointer-events-auto bg-black/35 text-white shadow-[0_14px_36px_-30px_rgba(0,0,0,0.45)]"
-            >
-              <HeartIcon className="h-5 w-5" />
-            </IconButton>
           </header>
         </div>
       </section>
@@ -158,7 +150,7 @@ export const MenuDetailClient = ({
               }}
             >
               {/* Reuse back icon as close in this context if CloseIcon isn't imported */}
-              <ArrowLeftIcon className="h-5 w-5 rotate-180" />
+              <CloseIcon className="h-5 w-5 rotate-180" />
             </IconButton>
           </div>
           <div className="relative flex flex-1 items-center justify-center" onClick={(e) => e.stopPropagation()}>
@@ -167,7 +159,7 @@ export const MenuDetailClient = ({
               size="full"
               variant="flat"
               rounded={false}
-              imageFit="contain"
+              imageFit="cover"
               initialIndex={0}
             />
           </div>

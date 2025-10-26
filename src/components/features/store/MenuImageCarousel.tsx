@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent, MouseEvent, TouchEvent } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
-import { ArrowLeftIcon, ArrowRightIcon } from "@/components/ui/icons";
+import { ArrowRightIcon, CloseIcon } from "@/components/ui/icons";
 import { DEFAULT_BLUR_DATA_URL } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ interface MenuImageCarouselProps {
 const sizeStyles: Record<NonNullable<MenuImageCarouselProps["size"]>, string> = {
   default: "h-[360px] sm:h-[440px] lg:h-[500px]",
   expanded: "h-[440px] sm:h-[560px] lg:h-[660px]",
-  full: "min-h-[60vh] sm:min-h-[70vh] lg:min-h-[80vh]",
+  full: "h-[70vh] sm:h-[80vh] lg:h-[85vh]",
   fluid: "aspect-video min-h-[16rem] sm:min-h-[20rem]",
 };
 
@@ -158,11 +158,11 @@ export const MenuImageCarousel = ({
       onKeyDown={onExpand ? handleKeyDown : undefined}
     >
       <div
-        className="flex transition-transform duration-500 ease-out"
+        className="flex h-full transition-transform duration-500 ease-out"
         style={{ transform: `translateX(-${activeIndex * 100}%)` }}
       >
         {safeImages.map(({ src, alt }, index) => (
-          <div key={src + index} className="relative h-full w-full shrink-0 overflow-hidden bg-black/5">
+          <div key={src + index} className="relative h-full w-full shrink-0 overflow-hidden">
             <Image
               alt={alt}
               src={src}
@@ -189,7 +189,7 @@ export const MenuImageCarousel = ({
             variant="ghost"
             className="absolute left-5 top-1/2 -translate-y-1/2 border border-white/70 bg-white/95 text-muted-foreground shadow-[0_16px_32px_-24px_rgba(31,27,22,0.32)] hover:scale-105"
           >
-            <ArrowLeftIcon className="h-4 w-4" />
+            <CloseIcon className="h-4 w-4" />
           </IconButton>
           <IconButton
             type="button"
