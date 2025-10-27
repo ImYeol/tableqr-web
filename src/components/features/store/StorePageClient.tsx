@@ -49,7 +49,7 @@ export const StorePageClient = ({ storeId, initialData, queueHref }: StorePageCl
         totalLabel="총 가격"
         totalValue={formattedTotal}
         totalIcon={<ShoppingBagIcon className="h-5 w-5 text-brand-700" />}
-        actionLabel="웨이팅 현황"
+        actionLabel="주문 알림 등록"
         href={queueHref}
       />
     </MobileShell>

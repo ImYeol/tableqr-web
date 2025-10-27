@@ -3,6 +3,7 @@ import type { RealtimeChannel, RealtimePostgresChangesPayload } from "@supabase/
 import { createSupabaseClient } from "@/lib/supabaseClient";
 import type { Queue } from "@/types";
 import type { WaitlistQueue, WaitlistStreamMessage } from "@/types/waitlist";
+import { DYNAMIC_MODE } from "@/config";
 
 type StreamParams = {
   storeId: string;
@@ -20,7 +21,7 @@ const toWaitlistQueueOrNull = (queue: Queue | null): WaitlistQueue | null => (qu
 
 const createSseChunk = (message: WaitlistStreamMessage) => encoder.encode(`data: ${JSON.stringify(message)}\n\n`);
 
-export const dynamic = "force-dynamic";
+export const dynamic = DYNAMIC_MODE;
 export const runtime = "nodejs";
 
 export async function GET(request: Request, { params }: { params: Promise<StreamParams> }) {
@@ -144,7 +145,7 @@ export async function GET(request: Request, { params }: { params: Promise<Stream
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-store",
+      "Cache-Control": "no-store", // SSE should never be cached
       Connection: "keep-alive",
       "Transfer-Encoding": "chunked",
     },

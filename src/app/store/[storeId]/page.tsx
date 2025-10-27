@@ -4,8 +4,9 @@ import { StorePageClient } from "@/components/features/store/StorePageClient";
 import { fetchStoreCachePayload } from "@/lib/server/fetchStoreCachePayload";
 import { fetchMockStoreData } from "@/lib/server/store-data/getStoreData";
 import type { StoreCachePayload } from "@/types";
+import { DYNAMIC_MODE, REVALIDATE_SECONDS } from "@/config";
 
-export const revalidate = 600; // 10분 Cache
+export const revalidate = REVALIDATE_SECONDS; // centralized cache control
 
 type StorePageParams = {
   storeId: string;
@@ -21,7 +22,7 @@ const buildLocalFallback = async (storeId: number): Promise<StoreCachePayload> =
   };
 };
 
-export const dynamic = "force-dynamic";
+export const dynamic = DYNAMIC_MODE;
 
 const StorePage = async ({ params }: { params: Promise<StorePageParams> }) => {
   const { storeId: rawStoreId } = await params;
