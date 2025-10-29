@@ -1,20 +1,14 @@
 'use client';
 
-import { useMemo, useState } from "react";
-
 import { MobileStoreHeader } from "@/components/features/store/MobileStoreHeader";
 import { MenuGrid } from "@/components/features/store/MenuGrid";
 import { MobileActionBar } from "@/components/ui/mobile-action-bar";
 import { MobileShell } from "@/components/ui/mobile-shell";
-import { ShoppingBagIcon } from "@/components/ui/icons";
+import { BellIcon, TicketIcon } from "@/components/ui/icons";
+import { useOrderNumber } from "@/components/features/store/OrderNumberContext";
 import { useStoreCache } from "@/hooks/useStoreCache";
-import type { Menu, StoreCachePayload } from "@/types";
-
-const currencyFormatter = new Intl.NumberFormat("ko-KR", {
-  style: "currency",
-  currency: "KRW",
-  maximumFractionDigits: 0,
-});
+import { formatQueueNumber } from "@/lib/formatQueueNumber";
+import type { StoreCachePayload } from "@/types";
 
 interface StorePageClientProps {
   storeId: number;
@@ -23,18 +17,18 @@ interface StorePageClientProps {
 }
 
 export const StorePageClient = ({ storeId, initialData, queueHref }: StorePageClientProps) => {
-  const [cartTotal, setCartTotal] = useState(0);
   const { data } = useStoreCache(storeId, initialData);
   const payload = data ?? initialData;
   const store = payload.store;
   const menus = payload.menus;
   const categories = payload.categories;
+  const { orderNumber } = useOrderNumber();
 
-  const handleAddToCart = (menu: Menu) => {
-    setCartTotal((prev) => prev + menu.price);
-  };
-
-  const formattedTotal = useMemo(() => currencyFormatter.format(cartTotal), [cartTotal]);
+  const orderNumberDisplay = orderNumber != null ? (
+    formatQueueNumber(orderNumber)
+  ) : (
+    <span className="text-base font-medium text-muted-foreground">주문번호 없음</span>
+  );
 
   return (
     <MobileShell>
@@ -44,13 +38,14 @@ export const StorePageClient = ({ storeId, initialData, queueHref }: StorePageCl
         operatingHours={store.business_hours ?? undefined}
         notice={store.notice ?? null}
       />
-      <MenuGrid menus={menus} categories={categories} onAddToCart={handleAddToCart} />
+      <MenuGrid menus={menus} categories={categories} />
       <MobileActionBar
-        totalLabel="총 가격"
-        totalValue={formattedTotal}
-        totalIcon={<ShoppingBagIcon className="h-5 w-5 text-brand-700" />}
-        actionLabel="웨이팅 현황"
+        totalLabel="주문번호"
+        totalValue={orderNumberDisplay}
+        totalIcon={<TicketIcon className="h-5 w-5 text-brand-700" />}
+        actionLabel="주문 알림 등록"
         href={queueHref}
+        actionIcon={<BellIcon className="h-4 w-4" />}
       />
     </MobileShell>
   );

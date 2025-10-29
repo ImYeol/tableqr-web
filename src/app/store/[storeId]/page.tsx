@@ -4,8 +4,7 @@ import { StorePageClient } from "@/components/features/store/StorePageClient";
 import { fetchStoreCachePayload } from "@/lib/server/fetchStoreCachePayload";
 import { fetchMockStoreData } from "@/lib/server/store-data/getStoreData";
 import type { StoreCachePayload } from "@/types";
-
-export const revalidate = 600; // 10분 Cache
+export const revalidate = 600; // revalidate every 10 minutes
 
 type StorePageParams = {
   storeId: string;
@@ -20,8 +19,6 @@ const buildLocalFallback = async (storeId: number): Promise<StoreCachePayload> =
     source: "mock",
   };
 };
-
-export const dynamic = "force-dynamic";
 
 const StorePage = async ({ params }: { params: Promise<StorePageParams> }) => {
   const { storeId: rawStoreId } = await params;

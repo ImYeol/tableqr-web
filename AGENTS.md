@@ -17,6 +17,15 @@ Use absolute imports via `@/`.
 - Prefer functional/server components and hooks
 - Run `npm run lint` before pushing; use `@/` imports
 
+### Readability & Reusability
+- Split large JSX blocks into smaller, self-contained components (e.g., Card, Section, Layout).
+- Separate logic (fetching, data transformation) from presentation; use hooks or container components for data handling.
+- Each component should have a single responsibility and receive data through props.
+- Follow a clear hierarchy: Layout → Page → Section → Component → Element.
+- Avoid inline styles or long JSX chains; prefer composition and descriptive naming.
+- Reuse UI patterns and extract common components (buttons, modals, list items) under `src/components/common`.
+- Maintain consistent naming and props conventions; keep components pure and declarative.
+
 ## Testing
 - Place tests in `src/**/__tests__/*.test.ts[x]`
 - Keep tests deterministic; stub Supabase and network

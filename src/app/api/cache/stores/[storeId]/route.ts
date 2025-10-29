@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 
 import { fetchMockStoreData, fetchStoreDataFromSupabase } from "@/lib/server/store-data/getStoreData";
 import type { StoreCachePayload } from "@/types";
-
-const EDGE_CACHE_SECONDS = 600;
-const BROWSER_CACHE_SECONDS = 300;
+import { EDGE_CACHE_SECONDS, BROWSER_CACHE_SECONDS, getApiCacheHeaders } from "@/config";
 
 export const runtime = "edge";
 export const revalidate = 600;
@@ -34,8 +32,6 @@ export async function GET(
   };
 
   return NextResponse.json(payload, {
-    headers: {
-      "Cache-Control": `public, max-age=${BROWSER_CACHE_SECONDS}, s-maxage=${EDGE_CACHE_SECONDS}, stale-while-revalidate=60`,
-    },
+    headers: getApiCacheHeaders(),
   });
 }

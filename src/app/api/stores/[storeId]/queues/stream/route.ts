@@ -144,7 +144,7 @@ export async function GET(request: Request, { params }: { params: Promise<Stream
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-store",
+      "Cache-Control": "no-store", // SSE should never be cached
       Connection: "keep-alive",
       "Transfer-Encoding": "chunked",
     },

@@ -6,11 +6,12 @@ import { cn } from "@/lib/utils";
 
 interface MobileActionBarProps {
   totalLabel: string;
-  totalValue: string;
+  totalValue: ReactNode;
   actionLabel: string;
   href: string;
   className?: string;
   totalIcon?: ReactNode;
+  actionIcon?: ReactNode;
 }
 
 export const MobileActionBar = ({
@@ -20,6 +21,7 @@ export const MobileActionBar = ({
   href,
   className,
   totalIcon,
+  actionIcon,
 }: MobileActionBarProps) => (
   <div
     className={cn(
@@ -32,13 +34,15 @@ export const MobileActionBar = ({
         <span className="text-[0.75rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
           {totalLabel}
         </span>
-        <div className="mt-1 flex items-center gap-2">
-          {totalIcon ? <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600/10 text-brand-700">{totalIcon}</span> : null}
-          <span className="text-lg font-semibold text-foreground">{totalValue}</span>
+        <div className="mt-1 flex items-center gap-3">
+          <div className="text-2xl font-bold leading-none tracking-tight text-foreground">{totalValue}</div>
         </div>
       </div>
       <Link href={href} className={buttonClassName({ variant: "primary", size: "md", className: "px-6 shadow-none" })}>
-        {actionLabel}
+        <span className="flex items-center gap-2">
+          <span>{actionLabel}</span>
+          {actionIcon ? <span className="text-[1.1rem] leading-none">{actionIcon}</span> : null}
+        </span>
       </Link>
     </div>
   </div>

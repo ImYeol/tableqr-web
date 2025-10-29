@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
+import { useOrderNumber } from "@/components/features/store/OrderNumberContext";
 import { buttonClassName } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatQueueNumber } from "@/lib/formatQueueNumber";
 import { getMessagingServiceWorkerRegistration, requestPermissionAndToken, subscribeForegroundMessages } from "@/lib/firebaseClient";
 import type { WaitlistMutationMessage, WaitlistQueue, WaitlistStreamMessage } from "@/types/waitlist";
 
@@ -14,7 +16,6 @@ interface WaitlistClientBoardProps {
 }
 
 const normalizeNumbers = (numbers: number[]) => Array.from(new Set(numbers)).sort((a, b) => a - b);
-const formatTicketNumber = (value: number) => value.toString().padStart(2, "0");
 
 const WAITING_STATUS = 0;
 const READY_STATUS = 1;
@@ -47,12 +48,12 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
   const [waitingNumbers, setWaitingNumbers] = useState<number[]>(() => extractNumbersByStatus(initialQueues, WAITING_STATUS));
   const [readyNumbers, setReadyNumbers] = useState<number[]>(() => extractNumbersByStatus(initialQueues, READY_STATUS));
   const [inputValue, setInputValue] = useState("");
-  const [subscribedNumber, setSubscribedNumber] = useState<number | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [validationTone, setValidationTone] = useState<"info" | "success" | "error">("info");
   const [subscriptionState, setSubscriptionState] = useState<"idle" | "subscribed">("idle");
   const [notificationToken, setNotificationToken] = useState<string | null>(null);
   const [isRegisteringNotification, setIsRegisteringNotification] = useState(false);
+  const { orderNumber, setOrderNumber } = useOrderNumber();
 
   const waitingSet = useMemo(() => new Set(waitingNumbers), [waitingNumbers]);
   const readySet = useMemo(() => new Set(readyNumbers), [readyNumbers]);
@@ -71,17 +72,17 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
       setReadyNumbers(nextReady);
 
       if (servedNumbers.size > 0) {
-        setSubscribedNumber((current) => {
+        setOrderNumber((current) => {
           if (current != null && servedNumbers.has(current)) {
             setValidationTone("info");
-            setValidationMessage(`주문 번호 ${formatTicketNumber(current)}가 완료되어 목록에서 제외됐어요.`);
+            setValidationMessage(`주문 번호 ${formatQueueNumber(current)}가 완료되어 목록에서 제외됐어요.`);
             return null;
           }
           return current;
         });
       }
     },
-    [setSubscribedNumber, setValidationMessage, setValidationTone],
+    [setOrderNumber, setValidationMessage, setValidationTone],
   );
 
   const pruneQueueNumber = useCallback((queueNumber: number) => {
@@ -190,21 +191,21 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
   }, [applyMutation, applySnapshot, storeId]);
 
   useEffect(() => {
-    if (!subscribedNumber) {
+    if (!orderNumber) {
       return;
     }
 
-    if (readySet.has(subscribedNumber)) {
+    if (readySet.has(orderNumber)) {
       setValidationTone("success");
-      setValidationMessage(`주문 번호 ${formatTicketNumber(subscribedNumber)} 준비가 완료됐어요.`);
+      setValidationMessage(`주문 번호 ${formatQueueNumber(orderNumber)} 준비가 완료됐어요.`);
       return;
     }
 
-    if (!waitingSet.has(subscribedNumber)) {
+    if (!waitingSet.has(orderNumber)) {
       setValidationTone("info");
       setValidationMessage("등록된 주문 번호가 목록에서 잠시 보이지 않아요.");
     }
-  }, [readySet, waitingSet, subscribedNumber]);
+  }, [orderNumber, readySet, waitingSet]);
 
   useEffect(() => {
     // Ensure SW is registered; subscribe to foreground FCM for visible alerts
@@ -230,7 +231,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
     const digitsOnly = inputValue.trim();
 
     if (!digitsOnly) {
-      setSubscribedNumber(null);
+      setOrderNumber(null);
       setValidationTone("error");
       setValidationMessage("주문 번호를 입력해 주세요.");
       return;
@@ -238,14 +239,14 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
 
     const parsed = Number.parseInt(digitsOnly, 10);
     if (!Number.isFinite(parsed)) {
-      setSubscribedNumber(null);
+      setOrderNumber(null);
       setValidationTone("error");
       setValidationMessage("숫자만 입력할 수 있어요.");
       return;
     }
 
     if (!waitingSet.has(parsed)) {
-      setSubscribedNumber(null);
+      setOrderNumber(null);
       setValidationTone("error");
       setValidationMessage("현재 준비 중인 주문 번호가 아니에요.");
       return;
@@ -289,12 +290,12 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
         throw new Error(payload?.error ?? "알림 등록에 실패했어요.");
       }
 
-      setSubscribedNumber(parsed);
+      setOrderNumber(parsed);
       setValidationTone("success");
-      setValidationMessage(`주문 번호 ${formatTicketNumber(parsed)} 알림을 등록했어요.`);
+      setValidationMessage(`주문 번호 ${formatQueueNumber(parsed)} 알림을 등록했어요.`);
     } catch (error) {
       console.error("[queue-notifications] register error", error);
-      setSubscribedNumber(null);
+      setOrderNumber(null);
       setValidationTone("error");
       setValidationMessage(error instanceof Error ? error.message : "알림 등록 중 문제가 발생했어요.");
     } finally {
@@ -312,7 +313,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
         <div className="max-h-[24rem] min-h-[12rem] overflow-y-auto pr-1">
           <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {numbers.map((number) => {
-              const isSubscribed = subscribedNumber === number;
+              const isSubscribed = orderNumber === number;
               return (
                 <li
                   key={`${title}-${number}`}
@@ -320,7 +321,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
                     isSubscribed ? "ring-2 ring-brand-400 ring-offset-2 ring-offset-[var(--color-background)]" : ""
                   }`}
                 >
-                  {formatTicketNumber(number)}
+                  {formatQueueNumber(number)}
                 </li>
               );
             })}
@@ -383,7 +384,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
           <div className="flex items-center justify-between rounded-[var(--radius-pill)] bg-surface-muted px-4 py-2 text-xs text-muted-foreground">
             <span>알림 등록 번호</span>
             <span className="text-sm font-semibold text-foreground">
-              {subscribedNumber ? formatTicketNumber(subscribedNumber) : "등록되지 않음"}
+              {orderNumber != null ? formatQueueNumber(orderNumber) : "등록되지 않음"}
             </span>
           </div>
           {validationMessage ? (
