@@ -4,10 +4,7 @@ import { MenuDetailClient } from "@/components/features/store/MenuDetailClient";
 import { fetchStoreCachePayload } from "@/lib/server/fetchStoreCachePayload";
 import { fetchMockStoreData } from "@/lib/server/store-data/getStoreData";
 import type { Menu, StoreCachePayload } from "@/types";
-import { DYNAMIC_MODE, REVALIDATE_SECONDS } from "@/config";
-
-export const revalidate = REVALIDATE_SECONDS;
-export const dynamic = DYNAMIC_MODE;
+export const revalidate = 600; // revalidate every 10 minutes
 
 type MenuDetailPageParams = {
   storeId: string;

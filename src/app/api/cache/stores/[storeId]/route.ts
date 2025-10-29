@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 
 import { fetchMockStoreData, fetchStoreDataFromSupabase } from "@/lib/server/store-data/getStoreData";
 import type { StoreCachePayload } from "@/types";
-import { EDGE_CACHE_SECONDS, BROWSER_CACHE_SECONDS, getApiCacheHeaders, REVALIDATE_SECONDS } from "@/config";
+import { EDGE_CACHE_SECONDS, BROWSER_CACHE_SECONDS, getApiCacheHeaders } from "@/config";
 
 export const runtime = "edge";
-export const revalidate = REVALIDATE_SECONDS;
+export const revalidate = 600;
 
 export async function GET(
   _request: Request,

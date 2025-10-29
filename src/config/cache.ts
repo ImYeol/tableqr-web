@@ -5,10 +5,6 @@
 export const IS_PROD = process.env.NODE_ENV === "production";
 export const IS_DEV = !IS_PROD;
 
-// SSR/ISR
-export const REVALIDATE_SECONDS = IS_DEV ? 0 : 600; // 10 minutes in prod
-export const DYNAMIC_MODE: "force-static" | "force-dynamic" = IS_DEV ? "force-dynamic" : "force-static";
-
 // fetch() defaults
 export const FETCH_CACHE_MODE: RequestCache | undefined = IS_DEV ? "no-store" : "force-cache";
 
@@ -42,4 +38,3 @@ export function withApiCacheHeaders(init?: ResponseInit): ResponseInit {
     },
   };
 }
-
