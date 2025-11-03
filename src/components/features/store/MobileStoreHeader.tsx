@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { IconButton, iconButtonClassName } from "@/components/ui/icon-button";
 import { ArrowLeftIcon, HeartIcon, ShareIcon } from "@/components/ui/icons";
+import { buildImageVariantUrl } from "@/lib/images";
 import type { Store } from "@/types";
 
 interface MobileStoreHeaderProps {
@@ -18,14 +19,16 @@ export const MobileStoreHeader = ({
   notice,
 }: MobileStoreHeaderProps) => {
   const phoneNumber = store.phone ?? "문의 전화번호 준비 중";
+  const coverImageUrl = buildImageVariantUrl(store.cover_url, "large") ?? store.cover_url;
+  const logoImageUrl = buildImageVariantUrl(store.logo_url, "thumb") ?? store.logo_url;
 
   return (
     <section className="space-y-6">
       <div className="-mx-5">
         <div className="relative aspect-[3/2] w-full overflow-hidden">
-          {store.cover_url ? (
+          {coverImageUrl ? (
             <img
-              src={store.cover_url}
+              src={coverImageUrl}
               alt={`${store.name} 대표 이미지`}
               className="absolute inset-0 h-full w-full object-cover"
             />
@@ -45,10 +48,10 @@ export const MobileStoreHeader = ({
             </div>
           </div>
           <div className="absolute inset-x-0 bottom-0 flex justify-start px-5 pb-5">
-            {store.logo_url ? (
+            {logoImageUrl ? (
               <div className="h-16 w-16 rounded-full overflow-hidden border border-white/80 shadow-[0_18px_32px_-22px_rgba(0,0,0,0.55)]">
                 <img
-                  src={store.logo_url}
+                  src={logoImageUrl}
                   alt={`${store.name} 로고`}
                   className="h-full w-full object-cover object-center"
                 />

@@ -150,7 +150,7 @@ export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
               query: { menu: encodeURIComponent(JSON.stringify(menu)) },
             } as const;
 
-            const imageSrc = resolveMenuImageSrc(menu);
+            const imageSrc = resolveMenuImageSrc(menu, "thumb");
 
             return (
               <Link key={menu.menu_id} href={href} className="group block">
