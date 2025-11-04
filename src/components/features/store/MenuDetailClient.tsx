@@ -9,7 +9,7 @@ import { IconButton, iconButtonClassName } from "@/components/ui/icon-button";
 import { ArrowLeftIcon, CloseIcon, HeartIcon } from "@/components/ui/icons";
 import { MobileShell } from "@/components/ui/mobile-shell";
 import { useStoreCache } from "@/hooks/useStoreCache";
-import { DEFAULT_BLUR_DATA_URL, buildVersionedImageUrl } from "@/lib/images";
+import { DEFAULT_BLUR_DATA_URL, resolveMenuImageSrc } from "@/lib/images";
 import type { Menu, Store, StoreCachePayload } from "@/types";
 
 const currencyFormatter = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 });
@@ -52,9 +52,12 @@ export const MenuDetailClient = ({
     : menu.category_id != null
       ? `카테고리 ${menu.category_id}`
       : "추천 메뉴";
-  const images = menu.image_url
-    ? [{ src: buildVersionedImageUrl(menu.image_url, menu.updated_at) ?? menu.image_url, alt: `${menu.name} 이미지` }]
-    : [];
+  const imageAlt = `${menu.name} 이미지`;
+  const heroImageSrc = resolveMenuImageSrc(menu, "hero");
+  const detailImageSrc = resolveMenuImageSrc(menu, "detail");
+  const heroImage = heroImageSrc ? { src: heroImageSrc, alt: imageAlt } : null;
+  const detailImage = detailImageSrc ? { src: detailImageSrc, alt: imageAlt } : heroImage;
+  const detailImages = detailImage ? [detailImage] : [];
   const summaryItems = [
     {
       label: "가격",
@@ -98,10 +101,10 @@ export const MenuDetailClient = ({
               }
             }}
           >
-            {images[0] ? (
+            {heroImage ? (
               <Image
-                src={images[0].src}
-                alt={images[0].alt}
+                src={heroImage.src}
+                alt={heroImage.alt}
                 fill
                 sizes="100vw"
                 className="object-cover"
@@ -155,7 +158,7 @@ export const MenuDetailClient = ({
           </div>
           <div className="relative flex flex-1 items-center justify-center" onClick={(e) => e.stopPropagation()}>
             <MenuImageCarousel
-              images={images}
+              images={detailImages}
               size="full"
               variant="flat"
               rounded={false}
