@@ -77,7 +77,7 @@ export const MobileStoreHeader = ({
         <dl className="space-y-3">
           <div className="flex items-center justify-between border-b border-border-soft pb-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">운영시간</dt>
-            <dd className="text-sm font-semibold text-foreground">{operatingHours}</dd>
+            <dd className="text-sm font-semibold text-foreground whitespace-pre-line text-center">{operatingHours}</dd>
           </div>
           <div className="flex items-center justify-between border-b border-border-soft pb-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">문의 전화</dt>

@@ -132,8 +132,8 @@ export const MenuGrid = ({ menus, categories, onAddToCart }: MenuGridProps) => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Select Menu</p>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">원하는 메뉴를 선택해 보세요</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Menu List</p>
+            {/* <h2 className="mt-1 text-lg font-semibold text-foreground"></h2> */}
           </div>
         </div>
         <SegmentedControl options={segmentedOptions} value={activeCategory} onValueChange={setActiveCategory} />

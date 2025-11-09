@@ -7,7 +7,7 @@ import { useOrderNumber } from "@/components/features/store/OrderNumberContext";
 import { buttonClassName } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatQueueNumber } from "@/lib/formatQueueNumber";
-import { getMessagingServiceWorkerRegistration, requestPermissionAndToken, subscribeForegroundMessages } from "@/lib/firebaseClient";
+import { requestPermissionAndToken } from "@/lib/firebaseClient";
 import type { WaitlistMutationMessage, WaitlistQueue, WaitlistStreamMessage } from "@/types/waitlist";
 
 interface WaitlistClientBoardProps {
@@ -207,12 +207,6 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
     }
   }, [orderNumber, readySet, waitingSet]);
 
-  useEffect(() => {
-    // Ensure SW is registered; subscribe to foreground FCM for visible alerts
-    void getMessagingServiceWorkerRegistration();
-    const unsubscribe = subscribeForegroundMessages();
-    return () => unsubscribe();
-  }, []);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const digitsOnly = event.target.value.replace(/\D/g, "");
@@ -317,7 +311,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
               return (
                 <li
                   key={`${title}-${number}`}
-                  className={`flex h-16 w-16 items-center justify-center rounded-full text-base font-semibold ${circleClassName} ${
+                  className={`flex h-14 w-14 items-center justify-center rounded-full text-base font-semibold ${circleClassName} ${
                     isSubscribed ? "ring-2 ring-brand-400 ring-offset-2 ring-offset-[var(--color-background)]" : ""
                   }`}
                 >
@@ -335,14 +329,22 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
     </article>
   );
 
+  const formStateClassName =
+    orderNumber != null
+      ? "border-brand-100 bg-brand-50/70"
+      : "border-danger/40 bg-danger/5 ring-2 ring-danger/20 ring-offset-2 ring-offset-[var(--color-background)]";
+
   return (
     <div className="space-y-8">
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 rounded-[var(--radius-lg)] bg-surface px-5 py-6 shadow-[0_20px_56px_-40px_rgba(31,27,22,0.28)]"
+        className={`relative space-y-4 rounded-[var(--radius-lg)] px-5 py-6 shadow-[0_20px_56px_-40px_rgba(31,27,22,0.28)] transition-all ${formStateClassName}`}
       >
         <div className="flex items-center justify-between gap-3">
-          <span id="queue-number-label" className="text-sm font-medium text-foreground">
+          <span
+            id="queue-number-label"
+            className={`text-base font-semibold ${orderNumber != null ? "text-brand-700" : "text-danger"}`}
+          >
             내 주문 번호
           </span>
           <span
