@@ -7,18 +7,16 @@ import type { Store } from "@/types";
 
 interface MobileStoreHeaderProps {
   store: Store;
-  backHref?: string;
   operatingHours?: string;
   notice?: string | null;
 }
 
 export const MobileStoreHeader = ({
   store,
-  backHref = "/",
-  operatingHours = "10:00 - 22:00",
-  notice,
+  operatingHours = "",
+  notice = "",
 }: MobileStoreHeaderProps) => {
-  const phoneNumber = store.phone ?? "문의 전화번호 준비 중";
+  const phoneNumber = store.phone ?? "";
   const coverImageUrl = buildImageVariantUrl(store.cover_url, "large") ?? store.cover_url;
   const logoImageUrl = buildImageVariantUrl(store.logo_url, "thumb") ?? store.logo_url;
 
@@ -34,19 +32,12 @@ export const MobileStoreHeader = ({
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-200/70 via-brand-100 to-brand-50 text-brand-700">
-              매장 이미지 준비 중
+              Image is preparing
             </div>
           )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/25 to-transparent" />
 
-          <div className="absolute inset-x-0 top-0 flex items-center justify-end px-4 pt-[calc(var(--safe-top,0px)+0.6rem)]">
-            <div className="flex items-center gap-2">
-              <IconButton aria-label="공유하기" variant="ghost" size="sm" className="bg-black/35 text-white">
-                <ShareIcon className="h-5 w-5" />
-              </IconButton>
-            </div>
-          </div>
           <div className="absolute inset-x-0 bottom-0 flex justify-start px-5 pb-5">
             {logoImageUrl ? (
               <div className="h-16 w-16 rounded-full overflow-hidden border border-white/80 shadow-[0_18px_32px_-22px_rgba(0,0,0,0.55)]">
@@ -76,17 +67,17 @@ export const MobileStoreHeader = ({
 
         <dl className="space-y-3">
           <div className="flex items-center justify-between border-b border-border-soft pb-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">운영시간</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Operating Hours</dt>
             <dd className="text-sm font-semibold text-foreground whitespace-pre-line text-center">{operatingHours}</dd>
           </div>
           <div className="flex items-center justify-between border-b border-border-soft pb-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">문의 전화</dt>
-            <dd className="text-sm font-semibold text-brand-700">{phoneNumber}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Phone Number</dt>
+            <dd className="text-sm font-semibold text-foreground whitespace-pre-line text-center">{phoneNumber}</dd>
           </div>
           {notice ? (
-            <div className="space-y-2 rounded-[var(--radius-lg)] bg-brand-600/10 px-4 py-3 text-sm text-brand-700">
-              <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-700/70">Notice</dt>
-              <dd className="text-sm leading-relaxed text-brand-700/90">{notice}</dd>
+            <div className="space-y-1.5 border-b border-border-soft pb-3">
+              <dt className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Notice</dt>
+              <dd className="text-sm leading-relaxed text-foreground whitespace-pre-line">{notice}</dd>
             </div>
           ) : null}
         </dl>

@@ -311,8 +311,8 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
               return (
                 <li
                   key={`${title}-${number}`}
-                  className={`flex h-14 w-14 items-center justify-center rounded-full text-base font-semibold ${circleClassName} ${
-                    isSubscribed ? "ring-2 ring-brand-400 ring-offset-2 ring-offset-[var(--color-background)]" : ""
+                  className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ${
+                    isSubscribed ? "bg-brand-600 text-white" : circleClassName
                   }`}
                 >
                   {formatQueueNumber(number)}
@@ -329,9 +329,12 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
     </article>
   );
 
+  const isOrderReady = orderNumber != null && readySet.has(orderNumber);
   const formStateClassName =
     orderNumber != null
-      ? "border-brand-100 bg-brand-50/70"
+      ? isOrderReady
+        ? "border-[var(--success)]/40 bg-[var(--success)]/20 ring-2 ring-[var(--success)]/30 ring-offset-2 ring-offset-[var(--color-background)]"
+        : "border-brand-100 bg-brand-50/70"
       : "border-danger/40 bg-danger/5 ring-2 ring-danger/20 ring-offset-2 ring-offset-[var(--color-background)]";
 
   return (
@@ -382,24 +385,16 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
         <p id="queue-number-helper" className="text-xs text-muted-foreground">
           준비 중인 주문 번호만 등록할 수 있어요. 번호는 숫자만 입력해 주세요.
         </p>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-[var(--radius-pill)] bg-surface-muted px-4 py-2 text-xs text-muted-foreground">
-            <span>알림 등록 번호</span>
-            <span className="text-sm font-semibold text-foreground">
-              {orderNumber != null ? formatQueueNumber(orderNumber) : "등록되지 않음"}
-            </span>
-          </div>
-          {validationMessage ? (
-            <p
-              role="status"
-              className={`text-xs ${
-                validationTone === "error" ? "text-danger" : validationTone === "success" ? "text-success" : "text-muted-foreground"
-              }`}
-            >
-              {validationMessage}
-            </p>
-          ) : null}
-        </div>
+        {validationMessage ? (
+          <p
+            role="status"
+            className={`text-xs ${
+              validationTone === "error" ? "text-danger" : validationTone === "success" ? "text-success" : "text-muted-foreground"
+            }`}
+          >
+            {validationMessage}
+          </p>
+        ) : null}
       </form>
       {renderTicketList("준비 완료", readyNumbers, "bg-success/15 text-success")}
       {renderTicketList("준비 중", waitingNumbers, "bg-brand-50 text-brand-600")}

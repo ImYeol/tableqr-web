@@ -84,7 +84,7 @@ const WaitlistPage = async ({ params }: { params: Promise<WaitlistPageParams> })
               <ArrowLeftIcon className="h-4 w-4" />
             </IconButton>
           </Link>
-          <span className="text-lg font-semibold text-muted-foreground">대기 현황</span>
+          <span className="text-lg font-semibold text-muted-foreground">주문 알림 등록</span>
           <span className="w-10" aria-hidden="true" />
         </nav>
 

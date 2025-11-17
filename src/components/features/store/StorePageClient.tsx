@@ -34,7 +34,6 @@ export const StorePageClient = ({ storeId, initialData, queueHref }: StorePageCl
     <MobileShell>
       <MobileStoreHeader
         store={store}
-        backHref="/"
         operatingHours={store.business_hours ?? undefined}
         notice={store.notice ?? null}
       />
