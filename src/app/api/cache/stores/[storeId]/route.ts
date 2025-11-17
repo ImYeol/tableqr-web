@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { fetchMockStoreData, fetchStoreDataFromSupabase } from "@/lib/server/store-data/getStoreData";
+import { fetchStoreDataFromSupabase } from "@/lib/server/store-data/getStoreData";
 import type { StoreCachePayload } from "@/types";
 import { EDGE_CACHE_SECONDS, BROWSER_CACHE_SECONDS, getApiCacheHeaders } from "@/config";
 
@@ -18,20 +18,25 @@ export async function GET(
     return NextResponse.json({ error: "Invalid store id" }, { status: 400 });
   }
 
-  const liveData = await fetchStoreDataFromSupabase(storeId);
-  const storeData = liveData ?? (await fetchMockStoreData(storeId));
+  try {
+    const liveData = await fetchStoreDataFromSupabase(storeId);
 
-  if (!storeData) {
+    if (!liveData) {
+      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+    }
+
+    const payload: StoreCachePayload = {
+      ...liveData,
+      cachedAt: new Date().toISOString(),
+      source: "supabase",
+    };
+
+    return NextResponse.json(payload, {
+      headers: getApiCacheHeaders(),
+    });
+  } catch (error) {
+    console.error("[cache/stores] Error fetching store data:", error);
     return NextResponse.json({ error: "Store not found" }, { status: 404 });
   }
 
-  const payload: StoreCachePayload = {
-    ...storeData,
-    cachedAt: new Date().toISOString(),
-    source: liveData ? "supabase" : "mock",
-  };
-
-  return NextResponse.json(payload, {
-    headers: getApiCacheHeaders(),
-  });
 }
