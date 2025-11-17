@@ -12,6 +12,7 @@ interface MobileActionBarProps {
   className?: string;
   totalIcon?: ReactNode;
   actionIcon?: ReactNode;
+  actionButtonClassName?: string;
 }
 
 export const MobileActionBar = ({
@@ -22,6 +23,7 @@ export const MobileActionBar = ({
   className,
   totalIcon,
   actionIcon,
+  actionButtonClassName,
 }: MobileActionBarProps) => (
   <div
     className={cn(
@@ -38,7 +40,7 @@ export const MobileActionBar = ({
           <div className="text-2xl font-bold leading-none tracking-tight text-foreground">{totalValue}</div>
         </div>
       </div>
-      <Link href={href} className={buttonClassName({ variant: "primary", size: "md", className: "px-6 shadow-none" })}>
+      <Link href={href} className={buttonClassName({ variant: "primary", size: "md", className: cn("px-6 shadow-none", actionButtonClassName) })}>
         <span className="flex items-center gap-2">
           <span>{actionLabel}</span>
           {actionIcon ? <span className="text-[1.1rem] leading-none">{actionIcon}</span> : null}
