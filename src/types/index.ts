@@ -44,6 +44,16 @@ export interface Queue {
   called_at: string | null;
 }
 
+export interface QueueItem {
+  queue_item_id: number;
+  queue_id: number;
+  menu_id: number;
+  menu_name: string;
+  quantity: number;
+  price: number;
+  created_at: string;
+}
+
 export interface StoreCachePayload {
   store: Store;
   menus: Menu[];

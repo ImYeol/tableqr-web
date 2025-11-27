@@ -5,9 +5,12 @@ import type { ChangeEvent, FormEvent } from "react";
 
 import { useOrderNumber } from "@/components/features/store/OrderNumberContext";
 import { buttonClassName } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { CloseIcon } from "@/components/ui/icons";
 import { formatQueueNumber } from "@/lib/formatQueueNumber";
 import { requestPermissionAndToken } from "@/lib/firebaseClient";
+import type { QueueItem } from "@/types";
 import type { WaitlistMutationMessage, WaitlistQueue, WaitlistStreamMessage } from "@/types/waitlist";
 
 interface WaitlistClientBoardProps {
@@ -53,6 +56,11 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
   const [subscriptionState, setSubscriptionState] = useState<"idle" | "subscribed">("idle");
   const [notificationToken, setNotificationToken] = useState<string | null>(null);
   const [isRegisteringNotification, setIsRegisteringNotification] = useState(false);
+  const [orderItems, setOrderItems] = useState<QueueItem[] | null>(null);
+  const [isLoadingOrderItems, setIsLoadingOrderItems] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [pendingQueueNumber, setPendingQueueNumber] = useState<number | null>(null);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const { orderNumber, setOrderNumber } = useOrderNumber();
 
   const waitingSet = useMemo(() => new Set(waitingNumbers), [waitingNumbers]);
@@ -76,6 +84,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
           if (current != null && servedNumbers.has(current)) {
             setValidationTone("info");
             setValidationMessage(`주문 번호 ${formatQueueNumber(current)}가 완료되어 목록에서 제외됐어요.`);
+            setOrderItems(null);
             return null;
           }
           return current;
@@ -214,6 +223,66 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
     setValidationMessage(null);
   };
 
+  const handleRequestPermission = async () => {
+    if (!pendingQueueNumber) return;
+
+    setIsRequestingPermission(true);
+    try {
+      const token = await requestPermissionAndToken();
+      if (token) {
+        setNotificationToken(token);
+        setShowPermissionModal(false);
+        
+        // 알림 등록 재시도
+        try {
+          const response = await fetch(`/api/stores/${storeId}/queue-notifications`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              queueNumber: pendingQueueNumber,
+              fcmToken: token,
+            }),
+          });
+
+          if (response.ok) {
+            setValidationTone("success");
+            setValidationMessage(`주문 번호 ${formatQueueNumber(pendingQueueNumber)} 알림을 등록했어요.`);
+          } else {
+            const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+            setValidationTone("info");
+            setValidationMessage(`주문 번호 ${formatQueueNumber(pendingQueueNumber)} 정보를 확인했어요. (알림 등록 실패: ${payload?.error ?? "알 수 없는 오류"})`);
+          }
+        } catch (error) {
+          console.error("[queue-notifications] register error", error);
+          setValidationTone("info");
+          setValidationMessage(`주문 번호 ${formatQueueNumber(pendingQueueNumber)} 정보를 확인했어요. (알림 등록 실패)`);
+        }
+      } else {
+        // 권한이 거부된 경우
+        setValidationTone("info");
+        setValidationMessage(`주문 번호 ${formatQueueNumber(pendingQueueNumber)} 정보를 확인했어요. (푸시 알림 권한이 필요해요)`);
+      }
+    } catch (error) {
+      console.error("[permission] request error", error);
+      setValidationTone("info");
+      setValidationMessage(`주문 번호 ${formatQueueNumber(pendingQueueNumber)} 정보를 확인했어요. (푸시 알림 권한 요청 실패)`);
+    } finally {
+      setIsRequestingPermission(false);
+      setPendingQueueNumber(null);
+    }
+  };
+
+  const handleClosePermissionModal = () => {
+    setShowPermissionModal(false);
+    if (pendingQueueNumber) {
+      setValidationTone("info");
+      setValidationMessage(`주문 번호 ${formatQueueNumber(pendingQueueNumber)} 정보를 확인했어요. (푸시 알림은 권한이 필요해요)`);
+      setPendingQueueNumber(null);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setValidationMessage(null);
@@ -226,6 +295,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
 
     if (!digitsOnly) {
       setOrderNumber(null);
+      setOrderItems(null);
       setValidationTone("error");
       setValidationMessage("주문 번호를 입력해 주세요.");
       return;
@@ -234,6 +304,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
     const parsed = Number.parseInt(digitsOnly, 10);
     if (!Number.isFinite(parsed)) {
       setOrderNumber(null);
+      setOrderItems(null);
       setValidationTone("error");
       setValidationMessage("숫자만 입력할 수 있어요.");
       return;
@@ -241,6 +312,7 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
 
     if (!waitingSet.has(parsed)) {
       setOrderNumber(null);
+      setOrderItems(null);
       setValidationTone("error");
       setValidationMessage("현재 준비 중인 주문 번호가 아니에요.");
       return;
@@ -248,13 +320,48 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
 
     setIsRegisteringNotification(true);
 
+    // 주문 정보 먼저 가져오기
+    setIsLoadingOrderItems(true);
+    let orderItemsLoaded = false;
+    try {
+      const itemsResponse = await fetch(`/api/stores/${storeId}/queues/${parsed}/items`);
+      if (itemsResponse.ok) {
+        const itemsData = (await itemsResponse.json()) as { items: QueueItem[] };
+        setOrderItems(itemsData.items);
+        orderItemsLoaded = true;
+      }
+    } catch (itemsError) {
+      console.error("[queue-items] load error", itemsError);
+    } finally {
+      setIsLoadingOrderItems(false);
+    }
+
+    // 주문 정보가 있으면 주문 번호 설정
+    if (orderItemsLoaded) {
+      setOrderNumber(parsed);
+    }
+
+    // 푸시 알림 등록 시도
     try {
       let token = notificationToken;
 
       if (!token) {
+        // 권한 상태 확인
+        const currentPermission = typeof window !== "undefined" && "Notification" in window ? Notification.permission : "denied";
+        
+        if (currentPermission === "denied" || currentPermission === "default") {
+          // 권한이 없거나 거부된 경우 모달 표시
+          setPendingQueueNumber(parsed);
+          setShowPermissionModal(true);
+          return;
+        }
+        
         token = await requestPermissionAndToken();
         if (!token) {
-          throw new Error("푸시 알림 권한을 허용해 주세요.");
+          // 권한 요청 후에도 토큰이 없으면 모달 표시
+          setPendingQueueNumber(parsed);
+          setShowPermissionModal(true);
+          return;
         }
         setNotificationToken(token);
       }
@@ -281,17 +388,26 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string; details?: string; code?: string } | null;
-        throw new Error(payload?.error ?? "알림 등록에 실패했어요.");
+        // 알림 등록 실패해도 주문 정보는 표시됨
+        setValidationTone("info");
+        setValidationMessage(`주문 번호 ${formatQueueNumber(parsed)} 정보를 확인했어요. (알림 등록 실패: ${payload?.error ?? "알 수 없는 오류"})`);
+        return;
       }
 
-      setOrderNumber(parsed);
       setValidationTone("success");
       setValidationMessage(`주문 번호 ${formatQueueNumber(parsed)} 알림을 등록했어요.`);
     } catch (error) {
       console.error("[queue-notifications] register error", error);
-      setOrderNumber(null);
-      setValidationTone("error");
-      setValidationMessage(error instanceof Error ? error.message : "알림 등록 중 문제가 발생했어요.");
+      // 알림 등록 실패해도 주문 정보는 표시됨
+      if (orderItemsLoaded) {
+        setValidationTone("info");
+        setValidationMessage(`주문 번호 ${formatQueueNumber(parsed)} 정보를 확인했어요. (알림 등록 실패)`);
+      } else {
+        setOrderNumber(null);
+        setOrderItems(null);
+        setValidationTone("error");
+        setValidationMessage(error instanceof Error ? error.message : "알림 등록 중 문제가 발생했어요.");
+      }
     } finally {
       setIsRegisteringNotification(false);
     }
@@ -396,8 +512,98 @@ export const WaitlistClientBoard = ({ storeId, initialQueues = [] }: WaitlistCli
           </p>
         ) : null}
       </form>
+      {orderNumber != null && orderItems != null && orderItems.length > 0 && (
+        <article className="space-y-4 rounded-[var(--radius-lg)] bg-surface px-5 py-6 shadow-[0_20px_56px_-40px_rgba(31,27,22,0.28)]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">주문 내역</h2>
+            <span className="text-xs font-medium text-muted-foreground">
+              총 {orderItems.reduce((sum, item) => sum + item.quantity, 0)}개
+            </span>
+          </div>
+          <dl className="space-y-3">
+            {orderItems.map((item) => (
+              <div key={item.queue_item_id} className="flex items-center justify-between border-b border-border-soft pb-3 last:border-0">
+                <div className="flex-1">
+                  <dt className="text-sm font-medium text-foreground">{item.menu_name}</dt>
+                  <dd className="text-xs text-muted-foreground">수량: {item.quantity}개</dd>
+                </div>
+                <div className="text-right">
+                  <dd className="text-sm font-semibold text-foreground">
+                    {(item.price * item.quantity).toLocaleString()}원
+                  </dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+          <div className="flex items-center justify-between border-t border-border-soft pt-3">
+            <span className="text-base font-semibold text-foreground">총 결제 금액</span>
+            <span className="text-lg font-bold text-brand-600">
+              {orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}원
+            </span>
+          </div>
+        </article>
+      )}
       {renderTicketList("준비 완료", readyNumbers, "bg-success/15 text-success")}
       {renderTicketList("준비 중", waitingNumbers, "bg-brand-50 text-brand-600")}
+      
+      {showPermissionModal ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="permission-modal-title"
+          onClick={handleClosePermissionModal}
+        >
+          <div
+            className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-surface p-6 shadow-[0_20px_56px_-40px_rgba(31,27,22,0.28)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 id="permission-modal-title" className="text-lg font-semibold text-foreground">
+                푸시 알림 권한 필요
+              </h2>
+              <IconButton
+                aria-label="닫기"
+                variant="ghost"
+                size="sm"
+                onClick={handleClosePermissionModal}
+              >
+                <CloseIcon className="h-5 w-5" />
+              </IconButton>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                주문 준비 완료 알림을 받으려면 푸시 알림 권한이 필요해요. 브라우저에서 권한을 허용해 주세요.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleClosePermissionModal}
+                  className={buttonClassName({
+                    variant: "secondary",
+                    size: "sm",
+                    className: "flex-1",
+                  })}
+                >
+                  나중에
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRequestPermission}
+                  disabled={isRequestingPermission}
+                  className={buttonClassName({
+                    variant: "primary",
+                    size: "sm",
+                    className: "flex-1",
+                  })}
+                >
+                  {isRequestingPermission ? "권한 요청 중..." : "권한 설정하기"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
